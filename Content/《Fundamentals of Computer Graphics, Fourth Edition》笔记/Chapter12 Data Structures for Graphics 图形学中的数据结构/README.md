@@ -12,6 +12,12 @@
       - [The Winged-Edge Structure 翼边结构](#the-winged-edge-structure-翼边结构)
       - [The Half-Edge Structure 半边结构](#the-half-edge-structure-半边结构)
   - [12.2 Scene Graphs 场景图](#122-scene-graphs-场景图)
+  - [12.3 Spatial Data Structures 空间数据结构](#123-spatial-data-structures-空间数据结构)
+    - [12.3.1 Bounding Boxes 包围盒](#1231-bounding-boxes-包围盒)
+    - [12.3.2 Hierarchical Bounding Boxes 层次包围盒](#1232-hierarchical-bounding-boxes-层次包围盒)
+    - [12.3.3 Uniform Spatial Subdivision 统一空间划分](#1233-uniform-spatial-subdivision-统一空间划分)
+    - [12.3.4 Axis-Aligned Binary Space Partitioning 轴对齐的二进制空间划分(BSP)](#1234-axis-aligned-binary-space-partitioning-轴对齐的二进制空间划分bsp)
+  - [12.4 BSP Trees for Visibility 为优化可见性问题的BSP](#124-bsp-trees-for-visibility-为优化可见性问题的bsp)
 
 ## 12.1 Triangle Meshes 三角网格
 
@@ -62,7 +68,7 @@
 
 如果我们要保存一个三角网格的信息，我们知道对于三角网格我们最少需要保存其顶点坐标和其面片的顶点组成，因此最容易想到的一种数据结构就是如下图的左图将三角形的顶点全部分开保存。但是很显然，这种做法会浪费大量空间因为在三角网格中很多顶点是重复出现的，并没有必要储存那么多次内容。
 
-因此一种更实际的数据结构是索引网格存储，将顶点的共享性利用起来，一口气储存所有顶点的坐标后再对每个三角面片储存对应的索引，通过面片的索引来得到确切的三维网格。这样得到的网格称为索引三角网格(indexed triangle mesh)，结构如下图右图。
+因此一种更实际的数据结构是索引网格存储，将顶点的共享性利用起来，一口气储存所有顶点的坐标后再对每个三角面片储存对应的索引，通过面片的索引来得到确切的三维网格。这样得到的网格称为索引三角网格(indexed triangle mesh)，结构如下图右图，对于这一系列结构建议将其理解为图或者复杂的链表。
 
 ![picture 6](Media/15826023af65ccff95aacd786633c428a8373025df4e5347f50544d9db42790a.png)  
 
@@ -141,6 +147,84 @@ TrianglesOfVertex(v) {  # 对于围绕的顶点v
 
 #### The Winged-Edge Structure 翼边结构
 
+还有一种常见的数据结构就是翼边结构(The Winged-Edge Structure)，其特点是将邻接关系都储存在网格的边上，翼边结构最大的优点在于其不仅能用在三角网格上还能用在任意形状的网格上，数据结构如下：
+
+- 对每个面，储存其中的一个边索引
+- 对每条边，储存其两个顶点，左右两个面，左边面与之连接的两条边，右边面与之连接的两条边
+- 对每个点，储存其对应的一个边索引
+
+单靠文字描述可能还不够完整，下面的图表述了翼边结构那复杂的边是如何描述一个三棱锥的
+
+![picture 1](Media/2293869e338a2a35ad970507427174f24cc53f1c3e3cac872a308427151dc06b.png)  
+
+翼边结构的另一大优点就是在索引邻接关系的时候非常方便，因为边储存了足够多的信息，利用这个结构我们可以在网格中自由检索。而之前的绕点检索方法伪代码如下，注意配合上图一起实践：
+
+```Shell
+EdgesOfVertex(v) {
+  e = v.e;
+  do {
+    if (e.tail == v)  # 当于边的尾部检索时，左转
+      e = e.lprev;
+    else
+      e = e.rprev;  # 否则右转
+  } while (e != v.e);
+}
+```
+
+翼边结构中显然存在很多为了加速计算而保留的信息冗余，也可以将其理解为一个多合一的双向链表。那么最简单的优化空间方法就是取出所有前向指针让翼边变为单向的，但是这样处理又会让搜索过程变得困难。而且翼边结构还有一个我们前面邻居三角结构中就遇到的问题，循环中有额外的判断存在。
+
 #### The Half-Edge Structure 半边结构
 
+因此又提出了半边结构(The Half-Edge Structure)来优化翼边结构。半边结构将一条边拆成了两个半边，每个半边储存用于单向检索的辅助信息和指向另一方向半边的指针，结构如下：
+
+- 对每个面，储存其中的一个半边索引
+- 对每条边，储存指向另一半边的指针和指向下一半边的指针，还有半边自己所属的那个顶点和所属的面
+- 对每个点，储存其对应的一个半边索引
+
+半边结构通过利用边的双向性在减少空间消耗的同时还达到了较好的检索效果，反向搜索的时候只要跳转到反向半边链即可，下图可以看到半边结构的邻接关系。
+
+![picture 2](Media/2259449e5ed79686ed9d3dbf392c527668289753366399447f4289cda1476a5d.png)  
+
+半边结构除了空间消耗上优于翼边结构，在搜索部分也优于翼边结构，半边结构无需判断当前的朝向，可以直接一连串地进行遍历。搜索的伪代码如下：
+
+```Shell
+EdgesOfVertex(v) {
+  h = v.h;
+  do {
+    h = h.pair.next;  # 像单向链表一样不断跳转即可
+  } while (h != v.h);
+}
+```
+
+其中，为了区分半边的方向，很多时候我们通过将特定朝向的半边存在对应的数组下标中来隐式表示。由于半边结构性质优良，因此在需要使用网格邻接关系时，半边结构是最常用的结构。
+
 ## 12.2 Scene Graphs 场景图
+
+图形学中我们常需要表示和储存由多个不同的三维表面按照层次组成的复杂场景，很多时候我们计算计算机动画的时候也需要用到层次结构。对于这种层次结构我们使用场景图(Scene Graphs)来保存。
+
+场景图不难理解，其本质上是一个多叉树和一个栈的组合，场景的根结点作为树根，然后不断往树的深层扩展，每个节点除了保存了各自的属性信息外还保存了代表这个层级的仿射变换矩阵，仿射变换矩阵是因为我们常常需要对场景中的对象分层进行变换，我们知道变换矩阵链乘不能交换，因此需要用树和栈辅助。例如下图的例子，一辆放在船上的车子，车子有两个轮子：
+
+![picture 3](Media/93a17d412b254f0df8a35a334dc58c72339965118679a6327ce27e98237effbb.png)  
+
+我们将这个树状结构储存到文件中，每次需要渲染这个场景的时候用下面的伪代码进行。这个伪代码其实就是一个基本的深度优先搜索，核心就是用栈作为当前的保留区，利用栈中保存的矩阵链乘来渲染，使得从树顶到树底的时候顶点的变换有序且有效：
+
+```Shell
+function traverse(node)
+  push(M_local) # 压入当前的变换矩阵
+  draw object using composite matrix from stack # 绘制当前结点并用栈内的从顶到底矩阵链乘进行变换
+  traverse(left child)  # 递归左子树
+  traverse(right child) # 递归右子树
+  pop() # 出栈当前结点的矩阵
+```
+
+## 12.3 Spatial Data Structures 空间数据结构
+
+### 12.3.1 Bounding Boxes 包围盒
+
+### 12.3.2 Hierarchical Bounding Boxes 层次包围盒
+
+### 12.3.3 Uniform Spatial Subdivision 统一空间划分
+
+### 12.3.4 Axis-Aligned Binary Space Partitioning 轴对齐的二进制空间划分(BSP)
+
+## 12.4 BSP Trees for Visibility 为优化可见性问题的BSP
