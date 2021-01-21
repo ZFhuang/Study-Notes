@@ -17,12 +17,18 @@
 
 [《Fundamentals of Computer Graphics, Fourth Edition》笔记](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/README.md)
 
-- [Chapter12 Data Structures for Graphics 图形学数据结构(未完工)](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
+1. [Chapter12 Data Structures for Graphics 图形学数据结构(未完工)](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 
-- [Chapter13 More Ray Tracing 光线追踪扩展](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
+1. [Chapter13 More Ray Tracing 光线追踪扩展](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
 
 ## 软件工程相关
 
 ## 游戏设计相关
 
 ## 科研学术相关
+
+## 数学相关
+
+[天津大学-数值计算方法 笔记](./Content/天津大学-数值计算方法%20笔记/README.md)
+
+## 杂文
