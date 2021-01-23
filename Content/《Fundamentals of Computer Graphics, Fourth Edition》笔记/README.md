@@ -12,6 +12,6 @@
 
 1. [Chapter2 Miscellaneous Math 各种数学工具](./Chapter2%20Miscellaneous%20Math%20各种数学工具/README.md)
 
-1. [Chapter12 Data Structures for Graphics 图形学数据结构(未完工)](./Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
+1. [Chapter12 Data Structures for Graphics 图形学数据结构](./Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 
 1. [Chapter13 More Ray Tracing 光线追踪扩展](./Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
