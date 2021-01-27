@@ -2,7 +2,7 @@
 
 ## 导读
 
-这是[傅孝明的Digital Geometry Processing课程](http://staff.ustc.edu.cn/~fuxm/course/2020_Spring_DGP/index.html)的作业框架安装指南, 由于其采用的教科书就是Polygon Mesh Processing因此归在一起
+这是中科大傅孝明老师的[Digital Geometry Processing课程](http://staff.ustc.edu.cn/~fuxm/course/2020_Spring_DGP/index.html)的作业框架安装指南, 由于其采用的教科书就是Polygon Mesh Processing因此归在一起
 
 ## 知乎总教程(自己取舍, OpenGL那部分我没遇到问题)
 [Surface Mesh Framework 框架搭建指南](https://zhuanlan.zhihu.com/p/111022607)

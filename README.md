@@ -15,7 +15,7 @@
 
 # 目录
 
-## 计算机图形学相关
+## 图形学相关
 
 [《Fundamentals of Computer Graphics, Fourth Edition》笔记](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/README.md)
 
@@ -26,6 +26,8 @@
 1. [Chapter12 Data Structures for Graphics 图形学数据结构](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 
 1. [Chapter13 More Ray Tracing 光线追踪扩展](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
+
+[中国科学技术大学-数字几何处理 笔记](./Content/中国科学技术大学-数字几何处理%20笔记/README.md)
 
 ## 软件工程相关
 
