@@ -15,6 +15,7 @@
   - [Using (custom) properties 使用自定义的网格属性](#using-custom-properties-使用自定义的网格属性)
   - [Using STL algorithms 使用stl算法](#using-stl-algorithms-使用stl算法)
   - [Using standard properties 使用标准属性](#using-standard-properties-使用标准属性)
+  - [实战网格遍历](#实战网格遍历)
 
 ## 前言
 
@@ -110,3 +111,5 @@ Mesh::VertexVertexIter内层迭代器(环绕器), 此迭代器会按照半边遍
 ## Using standard properties 使用标准属性
 
 可以用request_xxx()来让网格增加某个本来没有但是存在于列表中的标准属性例如法线属性, 然后用update_xxx()来刷新计算这个属性, 用的时候直接xxx()就可以返回其内容, 使用后用release_xxx()来删去这个属性.
+
+## 实战网格遍历

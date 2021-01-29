@@ -11,6 +11,7 @@
 ## 课程笔记
 1. [P1 Representations 表示](./P1%20Representations%20表示/README.md)
 2. [P2 Discrete differential geometry 离散微分几何](./P2%20Discrete%20differential%20geometry%20离散微分几何/README.md)
+3. [P3 Smoothing 平滑化](./P3%20Smoothing%20平滑化/README.md)
 
 ## 相关材料
 
