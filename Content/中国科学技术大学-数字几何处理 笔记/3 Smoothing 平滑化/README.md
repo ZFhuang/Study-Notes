@@ -1,6 +1,6 @@
-# P3 Smoothing 平滑化
+# 3 Smoothing 平滑化
 
-- [P3 Smoothing 平滑化](#p3-smoothing-平滑化)
+- [3 Smoothing 平滑化](#3-smoothing-平滑化)
   - [去噪](#去噪)
   - [拉普拉斯平滑](#拉普拉斯平滑)
   - [图像去噪](#图像去噪)

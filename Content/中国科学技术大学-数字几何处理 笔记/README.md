@@ -9,9 +9,10 @@
 ![picture 22](Media/df34ee8add3e1c294f3ca81919c2e6200909733254406282a741c6b806ade066.png)  
 
 ## 课程笔记
-1. [P1 Representations 表示](./P1%20Representations%20表示/README.md)
-2. [P2 Discrete differential geometry 离散微分几何](./P2%20Discrete%20differential%20geometry%20离散微分几何/README.md)
-3. [P3 Smoothing 平滑化](./P3%20Smoothing%20平滑化/README.md)
+1. [1 Representations 表示](./1%20Representations%20表示/README.md)
+2. [2 Discrete differential geometry 离散微分几何](./2%20Discrete%20differential%20geometry%20离散微分几何/README.md)
+3. [3 Smoothing 平滑化](./3%20Smoothing%20平滑化/README.md)
+4. [4 Parameterization 参数化](./4%20Parameterization%20参数化/README.md)
 
 ## 相关材料
 

@@ -1,6 +1,6 @@
-# P2 Discrete differential geometry 离散微分几何
+# 2 Discrete differential geometry 离散微分几何
 
-- [P2 Discrete differential geometry 离散微分几何](#p2-discrete-differential-geometry-离散微分几何)
+- [2 Discrete differential geometry 离散微分几何](#2-discrete-differential-geometry-离散微分几何)
   - [局部平均域](#局部平均域)
   - [法向量](#法向量)
   - [梯度算子](#梯度算子)

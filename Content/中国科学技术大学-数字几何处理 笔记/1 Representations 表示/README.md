@@ -1,6 +1,6 @@
-# P1 Representations 表示
+# 1 Representations 表示
 
-- [P1 Representations 表示](#p1-representations-表示)
+- [1 Representations 表示](#1-representations-表示)
   - [点云](#点云)
   - [符号距离场(SDF)](#符号距离场sdf)
   - [隐式方程](#隐式方程)
