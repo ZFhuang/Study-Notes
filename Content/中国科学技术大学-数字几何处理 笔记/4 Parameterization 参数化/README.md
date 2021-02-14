@@ -6,7 +6,11 @@
   - [Tutte's embedding](#tuttes-embedding)
   - [保角映射](#保角映射)
   - [基于角度的铺平(ABF)](#基于角度的铺平abf)
-  - [全等映射(As-rigid-as-possible method; ARAP)](#全等映射as-rigid-as-possible-method-arap)
+  - [全等映射](#全等映射)
+  - [简易ARAP装配](#简易arap装配)
+  - [作业4](#作业4)
+  - [作业5](#作业5)
+  - [作业笔记](#作业笔记)
 
 ## 定义
 
@@ -63,12 +67,60 @@
 
 这样能量函数就可以改写为下面的形式:
 
-![picture 10](Media/080177fe2aa223d268eb3928b9a4aa54af079af7f8377482806e738728406592.png)  
+![picture 10](Media/f34e488f52dfca7069cda16d3cfec5c22b2cd14b0c5000add13158c69ab9e4e4.png)   
 
-用拉格朗日乘子法得到等式的解e, 这个e就是参数化后的顶点应该的位置
+用拉格朗日乘子法得到等式的解e, 这个e就是参数化应该得到的各个角的角度偏移
 
 ![picture 9](Media/c5121f1e83d73d88a0eff4dea73e8c410f8b3179c7a6399eb3a7ca1e10e59c0f.png)  
 
-求解这个
+求解这个问题常用贪心法或者最小二乘法. 贪心法首先初始化一条边, 然后以边为单位开始深度优先遍历: 找一个有此边的三角形, 按照上面计算出来的参数化后的夹角角度, 计算新的两个边, 将原边出栈, 新两边入栈, 选取栈顶继续重复此操作, 直到最终栈空所有边就都参数化了. 贪心法计算比较快, 但是当参数化区域的边非常多时会导致这个扩散过程数值误差不断累加.
 
-## 全等映射(As-rigid-as-possible method; ARAP)
+最小二乘法利用的也是边相关的夹角正弦关系, 和保角变换时原理一样, 我们希望仅仅是对三角形施加了一个旋转矩阵.
+
+![picture 12](Media/c900aa54fd499450b1aeb0d567139c8e48f974a5426ea77b80ce25fe8742f2e9.png)  
+
+![picture 13](Media/2199d4e1db4eecb1d4696acf2c16a9caa6cb17fb155177a90e604ea36ba93b0f.png)  
+
+在参数化之前的表面上我们可以提取这个旋转矩阵为下面的M^t.
+
+![picture 11](Media/1f4701665b6e8052c2fd637c8711a602eca0bb420eabba358761b71915ffca61.png)  
+
+在z=0的表面上用原始边的长度初始化一条参数化边, 然后固定这个边, 在参数化情况下全局最小化下面的这个能量函数就可以得到参数化后的保角映射表面.
+
+![picture 14](Media/2c67bd4a8adcfe57bf21465a5dee2d57159a1d3eafe6f65e107afd253bbb0de8.png)  
+
+## 全等映射
+
+全等Isometric映射, 也就是不但要满足保角Conformal, 还要同时保面积Area-preserving. 从映射的雅可比矩阵性质来看, 全等映射的雅可比矩阵是旋转矩阵, 两个奇异值都为1, 保角映射是相似矩阵, 奇异值相等但一定, 保面积映射的雅可比矩阵行列式为1, 奇异值乘积为1.
+
+文章A Local/Global Approach to Mesh Parameterization实现了尽可能刚性的参数化方法(As-rigid-as-possible method; ARAP), 其目标就是让参数化前后的三角形尽可能全等, 最大程度减少映射前后的失真现象.
+
+实现这种映射的思路有点像之前的[SfG](...), 局部上我们能够得到每个三角形的刚性旋转矩阵L_t(尽管不能确定角度和位置), 全局上这些三角形由于需要互相连接因此实际的仿射变换J_t不是刚性旋转. 我们希望这两个变换尽可能相同, 因此这种方法的计算方法是典型的两步优化. 核心是优化下面的能量方程
+
+![picture 15](Media/90463832070cf9f814321b84e5369229eb518a5b39bc57be9aaadab1003aefe0.png)  
+
+全局优化阶段中, 我们固定了当前的刚性旋转矩阵, 通过最小化能量函数得到确切的旋转.
+
+局部优化阶段中, 在现有的J_t下, 对$||J_t-L_t||^2$进行最小化优化, 方法是求迹$d(J_t-L_t)=trace((J_t-L_t)^T(j_t-L_t))$, 对这个矩阵进行svd分解, 分解后用下面的式子组合得到局部变形L_t(?)
+
+![picture 17](Media/2662600dec4783bd0745decf4903d13a20718c5b3db5cd8980d5183f6639902b.png)  
+
+参数化效果如下, 两个阶段就像是把面片拆出来铺平然后连接.
+
+![picture 16](Media/9f732a3b4f1cb7af4459a9e913aaecc601d1c76989d75e9034850b7f684c7a53.png)  
+
+## 简易ARAP装配
+
+文章Computing Inversion-Free Mappings by Simplex Assembly跳过了ARAP求解L_t的部分, 在三角上先求解出J_t然后再装配拟合面片.
+
+![picture 18](Media/ace06f0550a786226df08bc2c1ac137620f946c0d42caff9d449c8da3d4d7d93.png)  
+
+## 作业4
+
+![picture 19](Media/64919aaeeb833d81987d9786c6fa138f988f5f67ed1ffece91ca2e9a7b7f5780.png)  
+
+## 作业5
+
+![picture 20](Media/5a2ffe10e4def22af694c184c2bc789fc5e97d046d14d13ed70274d1bab43cc7.png)  
+
+## 作业笔记
