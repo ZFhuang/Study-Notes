@@ -9,10 +9,13 @@
 ![picture 22](Media/df34ee8add3e1c294f3ca81919c2e6200909733254406282a741c6b806ade066.png)  
 
 ## 课程笔记
-1. [1 Representations 表示](./1%20Representations%20表示/README.md)
-2. [2 Discrete differential geometry 离散微分几何](./2%20Discrete%20differential%20geometry%20离散微分几何/README.md)
-3. [3 Smoothing 平滑化](./3%20Smoothing%20平滑化/README.md)
-4. [4 Parameterization 参数化](./4%20Parameterization%20参数化/README.md)
+- [1 Representations 表示](./1%20Representations%20表示/README.md)
+- [2 Discrete differential geometry 离散微分几何](./2%20Discrete%20differential%20geometry%20离散微分几何/README.md)
+- [3 Smoothing 平滑化](./3%20Smoothing%20平滑化/README.md)
+- [4 Parameterization 参数化](./4%20Parameterization%20参数化/README.md)
+- [5 Deformation 变形](./5%20Deformation%20变形/README.md)
+- [5.5 Barycentric Coordinates 重心坐标](./5.5%20Barycentric%20Coordinates%20重心坐标/README.md)
+- [14 Remeshing 网格重划分](./14%20Remeshing%20网格重划分/README.md)
 
 ## 相关材料
 
