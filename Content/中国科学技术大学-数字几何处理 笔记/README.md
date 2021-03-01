@@ -19,6 +19,6 @@
 
 ## 相关材料
 
-[作业环境配置](./作业环境配置/README.md)
-
-[OpenMesh教程文档](./OpenMesh教程文档/README.md)
+- [作业环境配置](./作业环境配置/README.md)
+- [OpenMesh教程文档](./OpenMesh教程文档/README.md)
+- [Eigen入门](./Eigen入门/README.md)
