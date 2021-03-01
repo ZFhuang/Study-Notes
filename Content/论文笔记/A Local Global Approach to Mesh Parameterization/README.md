@@ -11,6 +11,7 @@
   - [目标函数的矩阵形式](#目标函数的矩阵形式)
   - [Local/Global流程](#localglobal流程)
   - [台前幕后](#台前幕后)
+  - [混合模型](#混合模型)
   - [实验与总结](#实验与总结)
   - [相关工作](#相关工作)
 
@@ -19,9 +20,9 @@
 网格模型的表面参数化向来是几何处理中许多算法的基础, 但这个基础操作本身也有很大的难度, 面临着各种各样的问题. 其中比较关键的一个问题就是对于那些不可展开的网格, 展开后的三角形必然或多或少会有扭曲发生, 这篇文章就针对参数化展开途中的三角形扭曲问题进行优化, 借鉴了07年的As-rigid-as-possible surface modeling的思路, 将尽可能刚性(As-rigid-as-possible; ARAP), 也就是尽量保证变形途中三角形维持全等的特性应用到参数化过程中来. Loacl/Global迭代部分的思路与[SfG](...)相似, 在SfG中local操作投影更新点的位置, global操作合并顶点得到新的面片高度, 这篇文章中local操作计算了当前面片最优的旋转, global操作合并顶点得到新的面片二维坐标.
 
 思路:
-1. 首先将三维表面用普通方法参数化到UV平面上, 这可以初始化第一个全局变换矩阵$J$
+1. 首先将三维表面用普通方法参数化到UV平面上, 这可以初始化第一个全局变换矩阵J
 2. Local操作中, 将每个三角形拆开作为一个独立的面, 固定J求出当前全局变换下每个三角形可以处于的最佳局部变换L
-3. Global操作中, 固定局部变换$L$, 找到最适合目前局部变换的全局变换矩阵$J$
+3. Global操作中, 固定局部变换L, 找到最适合目前局部变换的全局变换矩阵J
 4. 迭代(2,3)多次直到结果稳定
 
 ![picture 2](Media/c33f66b2dd3c46aee06d9f0f6bcd9c3d7947d144eeed55d0d17e58668b7dc3f0.png)  
@@ -42,7 +43,7 @@ $$
 E(u, L)=\frac{1}{2} \sum_{t=1}^{T} \sum_{i=0}^{2} \cot (\theta_{t}^{i})||(u_{t}^{i}-u_{t}^{i+1})-L_{t}(x_{t}^{i}-x_{t}^{i+1})||^{2}
 $$
 
-上面式子中的$\theta$是边$(x_{t}^{i}-x_{t}^{i+1})$所对应的角, 我们需要始终使用参数化前的角度以保证局部变换有效, 为了方便可以使用源模型的三维角度充当二维. 然后显然当我们固定$L$时代入函数可以求解出对应的$(u_{t}^{i}-u_{t}^{i+1})$, 这就是Jacobian矩阵.
+上面式子中的$\theta$是边$(x_{t}^{i}-x_{t}^{i+1})$所对应的角, 我们需要始终使用参数化前的角度以保证局部变换有效, 为了方便可以使用源模型的三维角度充当二维. 然后显然当我们固定L时代入函数可以求解出对应的$(u_{t}^{i}-u_{t}^{i+1})$, 这就是Jacobian矩阵.
 
 ## Jacobian矩阵
 
@@ -62,25 +63,25 @@ $$
 
 在上面这个式子中, 第一个等号是计算两个矩阵差之间的F范数, 而进一步的, 这个差异可以展开为乘积的迹的形式.
 
-对于有两个矩阵变量的情况下我们没法优化这个式子, 但是如果我们固定其中的一项, 在这里我们固定global部分$J$, 那么04年文章Procrustes Problems告诉我们, 可以通过将Jacobian矩阵进行SVD分解来求出对于固定的$J$, 差距最小的$L$是什么. SVD展开会成为下面的形式:
+对于有两个矩阵变量的情况下我们没法优化这个式子, 但是如果我们固定其中的一项, 在这里我们固定global部分J, 那么04年文章Procrustes Problems告诉我们, 可以通过将Jacobian矩阵进行SVD分解来求出对于固定的J, 差距最小的L是什么. SVD展开会成为下面的形式:
 
 $$
 J=U \Sigma V^T
 $$
 
-我们知道, 分解后的矩阵$\Sigma$是对角矩阵, 其元素就是Jacobian矩阵的奇异值排列. 但是这里如果我们将SVD转为分解出奇异值为正的形式(方法: 奇异值对应分解出来的$U$和$V$, 对于奇异值为负的矩阵, 取正奇异值, 然后将那个矩阵的某一列全部加上负号即可), 就可以通过$L=UV^T$来直接得到与J最符合的local变换$L$.
+我们知道, 分解后的矩阵$\Sigma$是对角矩阵, 其元素就是Jacobian矩阵的奇异值排列. 但是这里如果我们将SVD转为分解出奇异值为正的形式(方法: 奇异值对应分解出来的U和V, 对于奇异值为负的矩阵, 取正奇异值, 然后将那个矩阵的某一列全部加上负号即可), 就可以通过$L=UV^T$来直接得到与J最符合的local变换L.
 
 ## 奇异值的性质
 
-既然可以直接从$J$计算出最符合的变换$L$, 那么现在需要来满足约束令$L$尽可能刚性了. 所谓的刚性就是面片的变换尽量不要发生变形, 最好是全等变换, 其次是相似(保角)变换, 再次是保面积变换. 而上面的SVD分解组合$L$正好有个很方便的特性, 当Jacobian矩阵的奇异值满足下面条件时, L会反映出特殊的性质:
+既然可以直接从J计算出最符合的变换L, 那么现在需要来满足约束令L尽可能刚性了. 所谓的刚性就是面片的变换尽量不要发生变形, 最好是全等变换, 其次是相似(保角)变换, 再次是保面积变换. 而上面的SVD分解组合L正好有个很方便的特性, 当Jacobian矩阵的奇异值满足下面条件时, L会反映出特殊的性质:
 
 - 两个奇异值都为1, L是旋转(全等)变换矩阵
 - 两个奇异值相等, L是相似(保角)变换矩阵
 - 两个奇异值乘积为1, L是保面变换矩阵
 
-由此对刚性变换$L$的追求和对全局变换$J$的追求就结合到了一起. 假如能量函数改写为$\sum^T_{t=1}A_t(\sigma_{1,t}-\sigma_{2,t})^2$, 也就是令奇异值尽量相等, 那么$J$会产生尽量接近于相似变换的矩阵$L$, 这被称为尽量相似的变换As-similar-as-possible (ASAP).
+由此对刚性变换L的追求和对全局变换J的追求就结合到了一起. 假如能量函数改写为$\sum^T_{t=1}A_t(\sigma_{1,t}-\sigma_{2,t})^2$, 也就是令奇异值尽量相等, 那么J会产生尽量接近于相似变换的矩阵L, 这被称为尽量相似的变换As-similar-as-possible (ASAP).
 
-假如能量函数改写为$\sum^T_{t=1}A_t[(\sigma_{1,t}-1)^2+(\sigma_{2,t}-1)^2]$, 也就是让奇异值尽量都等于1, 那么$J$会产生尽量接近于全等变换的矩阵$L$, 这就是我们要的尽量刚性的变换As-rigid-as-possible (ARAP).
+假如能量函数改写为$\sum^T_{t=1}A_t[(\sigma_{1,t}-1)^2+(\sigma_{2,t}-1)^2]$, 也就是让奇异值尽量都等于1, 那么J会产生尽量接近于全等变换的矩阵L, 这就是我们要的尽量刚性的变换As-rigid-as-possible (ARAP).
 
 很明显, 这两个能量函数都不好求, 但是论文的附录A和B给出了完整的过程, 证明了求解一开始的目标函数就等价于最小化这两个能量函数.
 
@@ -96,11 +97,44 @@ $$
 
 ## Local/Global流程
 
-至此总结一下, 在本文的local部分, 
-
+总结Local/Global流程: 
+- Local部分, 对当前全局变换矩阵进行正SVD分解, 然后用$L=UV^T$求解出最吻合的局部变换矩阵
+- Global部分, 求解上面的线性方程组得到下一次迭代的全局变换矩阵
 
 ## 台前幕后
 
+该算法在一开始的时候需要一个初始参数化来获取第一个全局变换矩阵J, 但对于这个初始化的参数化方法并没有特殊的要求, 不管使用什么方法进行初始参数化均能快速收敛到正确的结果. 下图就是两种方法的收敛对比:
+
+![picture 4](Media/3eee792afe8741cfafa2e42ae8407028dd44cceb0ba5b2b327e674102f365b37.png)  
+
+由于该算法仍然不可避免地会导致三角形发生的拉伸, 因此参数化方法常常遇到的三角形反转问题也会出现. 文章中采用了05年文章Free-boundary linear parameterization of 3D meshes in the presence
+of constraints进行后处理消除三角形反转问题.
+
+## 混合模型
+
+文章中段简单介绍了的ASAP方法和文章重点的ARAP方法可以通过下面的式子结合起来, 这样我们可以通过控制比值$\lambda$来决定参数化结果是更接近相似变换还是全等变换(全等变换在无法满足的情况下会接近保面变换).
+
+![picture 5](Media/442d36173de8b630fa78a11950f3c2ed0bd7b02b349f8ddd3397075b7d2f9ef5.png)  
+
 ## 实验与总结
 
+和当时流行的多种方法对比, 这篇文章都得到了最好的结果.
+
+![picture 6](Media/66e1826e25e5c1db44ded592e04ab245c026175f5a2be4ee305e3fd9cee8fde4.png)  
+
+![picture 7](Media/0103818e9d418f11cd31df5d8ece4c3c6c773d7385f58271b2862ba255323268.png)  
+
+下面的量化评估是通过对每个三角形的Jacobian矩阵特征值进行下面的计算得到:
+
+![picture 9](Media/29df71b41f43aed0883f5306e091baa4d9d68b63dbbc78ddd3d2b56e82136f50.png)  
+
+![picture 8](Media/882b783078d5a3103393fa4e5c4ee5e912526be587b60414557f04478e9064c7.png)  
+
 ## 相关工作
+
+这篇文章是08年的, 比较旧了, 很多所引用的文献可以在Polygon Mesh Processing中简要阅读, 这里只记录比较关键的:
+1. 消除三角形反转问题 KARNI Z., GOTSMAN C., GORTLER S. J.: Free-boundary linear parameterization of 3D meshes in the presence of constraints. In Proc. IEEE Shape Modeling and Applications (2005), pp. 268–277.
+2. 文章用来对比的操作网格曲率分布进行保角参数化的三个方法:
+3. BEN-CHEN M., GOTSMAN C., BUNIN G.: Conformal flattening by curvature prescription and metric scaling. Computer Graphics Forum 27, 2 (2008), 449–458. (Proc. Eurographics 2008).
+4. YANG Y., KIM J., LUO F., HU S., GU X.: Optimal surface parameterization using inverse curvature map. IEEE TVCG (2008). To appear
+5. SPRINGBORN B., SCHROEDER P., PINKALL U.: Conformal equivalence of triangle meshes. ACM Transactions on Graphics 27, 3 (2008). (Proc. SIGGRAPH 2008).
