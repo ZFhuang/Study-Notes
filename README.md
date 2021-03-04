@@ -34,6 +34,8 @@
 
 ## 科研学术相关
 
+[A Local/Global Approach to Mesh Parameterization 笔记](./Content/论文笔记/A%20Local%20Global%20Approach%20to%20Mesh%20Parameterization/README.md)
+
 ## 数学相关
 
 ## 杂文
