@@ -18,7 +18,6 @@
 ## 图形学相关
 
 [《Fundamentals of Computer Graphics, Fourth Edition》笔记](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/README.md)
-
 - [Chapter1 Introduction 导言](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter1%20Introduction%20导言/README.md)
 - [Chapter2 Miscellaneous Math 各种数学工具](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter2%20Miscellaneous%20Math%20各种数学工具/README.md)
 - [Chapter12 Data Structures for Graphics 图形学数据结构](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
@@ -26,7 +25,7 @@
 
 [中国科学技术大学-数字几何处理 笔记](./Content/中国科学技术大学-数字几何处理%20笔记/README.md)
 
-[样条曲线曲面 笔记](./Content/专项笔记/样条曲线曲面/README.md)
+[Peter Shirley 的 Ray Tracing ... 技巧]()
 
 ## 软件工程相关
 
@@ -37,5 +36,7 @@
 [A Local/Global Approach to Mesh Parameterization 笔记](./Content/论文笔记/A%20Local%20Global%20Approach%20to%20Mesh%20Parameterization/README.md)
 
 ## 数学相关
+
+[样条曲线曲面 笔记](./Content/专项笔记/样条曲线曲面/README.md)
 
 ## 杂文
