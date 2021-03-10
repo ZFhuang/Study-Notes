@@ -1,8 +1,8 @@
-# 《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter13 More Ray Tracing 光线追踪扩展
+# Chapter13 More Ray Tracing 光线追踪扩展
 
 本章是前面第四章光线追踪内容的扩展，补充了一些实现光线追踪中常用的更进一步的技术，包括对透明物体的渲染，实例化技术在光线追踪中的应用，如何在光线追踪中渲染构造实体几何(CSG)和利用分布式光线追踪可以达到的很多华丽的效果。
 
-- [《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter13 More Ray Tracing 光线追踪扩展](#fundamentals-of-computer-graphics-fourth-edition笔记chapter13-more-ray-tracing-光线追踪扩展)
+- [Chapter13 More Ray Tracing 光线追踪扩展](#chapter13-more-ray-tracing-光线追踪扩展)
   - [13.1 Transparency and Refraction 透明与折射](#131-transparency-and-refraction-透明与折射)
   - [13.2  Instancing 实例化](#132--instancing-实例化)
   - [13.3 Constructive Solid Geometry 构造实体几何](#133-constructive-solid-geometry-构造实体几何)

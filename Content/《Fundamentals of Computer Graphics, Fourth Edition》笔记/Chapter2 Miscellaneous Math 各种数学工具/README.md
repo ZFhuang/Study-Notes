@@ -1,6 +1,6 @@
-# 《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter2 Miscellaneous Math 各种数学工具
+# Chapter2 Miscellaneous Math 各种数学工具
 
-- [《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter2 Miscellaneous Math 各种数学工具](#fundamentals-of-computer-graphics-fourth-edition笔记chapter2-miscellaneous-math-各种数学工具)
+- [Chapter2 Miscellaneous Math 各种数学工具](#chapter2-miscellaneous-math-各种数学工具)
   - [2.1 集合和映射](#21-集合和映射)
   - [2.2 解二次方程](#22-解二次方程)
   - [2.3 三角学](#23-三角学)

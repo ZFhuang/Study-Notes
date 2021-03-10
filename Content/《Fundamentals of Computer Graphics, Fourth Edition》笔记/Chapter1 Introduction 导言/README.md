@@ -1,6 +1,6 @@
-# 《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter1 Introduction 导言
+# Chapter1 Introduction 导言
 
-- [《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter1 Introduction 导言](#fundamentals-of-computer-graphics-fourth-edition笔记chapter1-introduction-导言)
+- [Chapter1 Introduction 导言](#chapter1-introduction-导言)
   - [1.1 图形学的领域](#11-图形学的领域)
   - [1.2 主要应用](#12-主要应用)
   - [1.3 图形API](#13-图形api)

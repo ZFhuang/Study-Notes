@@ -1,8 +1,8 @@
-# 《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter12 Data Structures for Graphics 图形学数据结构
+# Chapter12 Data Structures for Graphics 图形学数据结构
 
 本章主要介绍了图形学中常用到的数据结构，内容比较长。重点分别介绍了四个大类：网格结构(mesh structures)，空间数据结构(spatial data structures)，场景图(scene graphs)和多维镶嵌数组(tiled multidimensional arrays)。不要觉得数据结构这种运行在图形学底层的东西不重要，这本书是图形学的基础，其中所有内容都是必须非常熟悉的基础内容，每一个内容都可能在某个时候被用上。
 
-- [《Fundamentals of Computer Graphics, Fourth Edition》笔记——Chapter12 Data Structures for Graphics 图形学数据结构](#fundamentals-of-computer-graphics-fourth-edition笔记chapter12-data-structures-for-graphics-图形学数据结构)
+- [Chapter12 Data Structures for Graphics 图形学数据结构](#chapter12-data-structures-for-graphics-图形学数据结构)
   - [12.1 Triangle Meshes 三角网格](#121-triangle-meshes-三角网格)
     - [12.1.1  Mesh Topology 网状拓扑](#1211--mesh-topology-网状拓扑)
     - [12.1.2  Indexed Mesh Storage 索引网格存储](#1212--indexed-mesh-storage-索引网格存储)
