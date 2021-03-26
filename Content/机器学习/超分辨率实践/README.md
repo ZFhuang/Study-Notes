@@ -5,6 +5,10 @@
     - [SRCNN网络结构](#srcnn网络结构)
     - [SRCNN简单实现](#srcnn简单实现)
     - [SRCNN一些经验](#srcnn一些经验)
+  - [FSRCNN(2016) 更快的SRCNN](#fsrcnn2016-更快的srcnn)
+    - [FSRCNN网络结构](#fsrcnn网络结构)
+    - [FSRCNN简单实现](#fsrcnn简单实现)
+    - [FSRCNN一些经验](#fsrcnn一些经验)
   - [VDSR(2016) 深度残差神经网络](#vdsr2016-深度残差神经网络)
     - [VDSR网络结构](#vdsr网络结构)
     - [VDSR简单实现](#vdsr简单实现)
@@ -50,6 +54,52 @@ class SRCNN(nn.Module):
 - 卷积网络不好训练, 原文使用了ImageNet这样庞大的数据集, 事实上T91就可以得到训练效果
 - 用阶段改变学习率的动量SGD效果比Adam更好
 - 小batch收敛起来更有效些
+
+## FSRCNN(2016) 更快的SRCNN
+
+Accelerating the Super-Resolution Convolutional Neural Network
+
+### FSRCNN网络结构
+
+![picture 1](Media/f86ebc8d6d46cdeb2bce86d814e8ff1db3ae343c5903d11facb4c58ec61b8c32.png)  
+
+其与SRCNN最大的区别就是结尾使用的反卷积层, 通过反卷积让我们可以直接用没有插值的低分辨率图片进行超分辨率学习, 从而减少超分辨途中的参数数量, 加快网络效率. 并且使用了PReLU作为激活层, 使得激活层本身也可以被学习来提高网络效果
+
+### FSRCNN简单实现
+
+```python
+class FSRCNN(nn.Module):
+    def __init__(self,d,s,m,ratio=2):
+        super(FSRCNN, self).__init__()
+        feature_extraction=nn.Conv2d(1,d,5, padding=2)
+        shrinking=nn.Conv2d(d,s,1)
+        seq=[]
+        for i in range(m):
+            seq.append(nn.Conv2d(s,s,3,padding=1))
+        non_linear=nn.Sequential(*seq)
+        expanding=nn.Conv2d(s,d,1,padding=0)
+        # 反卷积尺寸计算 O=(I-1)×s+k-2P 
+        deconvolution=nn.ConvTranspose2d(d,1,9,stride=ratio,padding=4)
+        self.body=nn.Sequential(
+            feature_extraction,
+            nn.PReLU(),
+            shrinking,
+            nn.PReLU(),
+            non_linear,
+            nn.PReLU(),
+            expanding,
+            nn.PReLU(),
+            deconvolution
+        )
+    
+    def forward(self, img):
+        return self.body(img)
+```
+
+### FSRCNN一些经验
+
+- 由于输入输出大小不一样, 因此误差计算等需要注意写好
+- 由于反卷积的计算问题, 实际输出的结果图会比HR图小一个像素, 因此在使用的时候需要将HR层手动裁剪一个像素来适配网络
 
 ## VDSR(2016) 深度残差神经网络
 
