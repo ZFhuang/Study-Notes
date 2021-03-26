@@ -9,6 +9,10 @@
     - [FSRCNN网络结构](#fsrcnn网络结构)
     - [FSRCNN简单实现](#fsrcnn简单实现)
     - [FSRCNN一些经验](#fsrcnn一些经验)
+  - [ESPCN(2016) 实时进行的亚像素卷积](#espcn2016-实时进行的亚像素卷积)
+    - [ESPCN网络结构](#espcn网络结构)
+    - [ESPCN的简单实现](#espcn的简单实现)
+    - [ESPCN一些经验](#espcn一些经验)
   - [VDSR(2016) 深度残差神经网络](#vdsr2016-深度残差神经网络)
     - [VDSR网络结构](#vdsr网络结构)
     - [VDSR简单实现](#vdsr简单实现)
@@ -100,6 +104,43 @@ class FSRCNN(nn.Module):
 
 - 由于输入输出大小不一样, 因此误差计算等需要注意写好
 - 由于反卷积的计算问题, 实际输出的结果图会比HR图小一个像素, 因此在使用的时候需要将HR层手动裁剪一个像素来适配网络
+
+## ESPCN(2016) 实时进行的亚像素卷积
+
+Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network
+
+### ESPCN网络结构
+
+![picture 1](Media/e2ad2f7b84a56f4f48429f22ff9089accda61c4eee961f09bb2d34687dc047dd.png)  
+
+核心的优化在于最后一层的亚像素卷积过程, 其思想就是将卷积得到的多通道低分辨率图的像素按照周期排列得到高分辨率的图片, 这样训练出能够共同作用来增强分辨率的多个滤波器. 借用[一边Upsample一边Convolve：Efficient Sub-pixel-convolutional-layers详解](https://oldpan.me/archives/upsample-convolve-efficient-sub-pixel-convolutional-layers)的示意图可以更好理解亚像素卷积的过程.
+
+![picture 3](Media/3913f4b4d67b37cb06b6ddd12d71841fb250715ddf04ac6e467ddbb0ef59a5b7.png)  
+
+### ESPCN的简单实现
+
+```python
+class ESPCN(nn.Module):
+    def __init__(self, ratio=2):
+        super(ESPCN, self).__init__()
+        self.add_module('n1 conv', nn.Conv2d(1,64,5,padding=2))
+        self.add_module('tanh 1',nn.Tanh())
+        self.add_module('n2 conv', nn.Conv2d(64,32,3,padding=1))
+        self.add_module('tanh 2',nn.Tanh())
+        self.add_module('n3 conv', nn.Conv2d(32,1*ratio*ratio,3,padding=1))
+        # 亚像素卷积
+        self.add_module('pixel shuf',nn.PixelShuffle(ratio))
+    
+    def forward(self, img):
+        for module in self._modules.values():
+            img = module(img)
+        return img
+```
+
+### ESPCN一些经验
+
+- ESPCN用小LR块训练效果更好
+- 注意网络最后一层不要再放入激活层了, 会有反作用
 
 ## VDSR(2016) 深度残差神经网络
 
