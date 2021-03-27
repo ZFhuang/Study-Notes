@@ -17,6 +17,10 @@
     - [VDSR网络结构](#vdsr网络结构)
     - [VDSR简单实现](#vdsr简单实现)
     - [VDSR一些经验](#vdsr一些经验)
+  - [DRCN(2016) 深度递归残差神经网络](#drcn2016-深度递归残差神经网络)
+    - [DRCN网络结构](#drcn网络结构)
+    - [DRCN简单实现](#drcn简单实现)
+    - [DRCN一些经验](#drcn一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -191,3 +195,55 @@ class VDSR_Block(nn.Module):
 
 - 很不好训练, 效果也不理想, 不知道是不是实现有问题, 也可能是只有一个残差块的缺点, 梯度很快消失
 - 用阶段改变学习率的动量SGD来训练
+
+## DRCN(2016) 深度递归残差神经网络
+
+Deeply-Recursive Convolutional Network for Image Super-Resolution
+
+### DRCN网络结构
+
+![picture 1](Media/fdc7917195fda67af1bf5f3a44ad49a50dd75d6989d96662b20dfc314a906c40.png)  
+
+DRCN的亮点就在于中间的递归结构, 其使得每层都按照相同的参数进行了一次处理, 得到的残差通过跳接层相加得到一份结果, 然后所有级数的结果加权合在一起得到最终图像. 由于中间的递归结构每层使用的滤波都是相同的参数, 因此网络的训练难度低了很多, 训练比较高效而且效果也很不错.
+
+### DRCN简单实现
+
+```python
+class DRCN(nn.Module):
+    def __init__(self, recur_time=16):
+        super(DRCN, self).__init__()
+        self.recur_time = recur_time
+        self.Embedding = nn.Sequential(
+            nn.Conv2d(1, 256, 3, padding=1),
+            nn.ReLU(True)
+        )
+        self.Inference = nn.Sequential(
+            nn.Conv2d(256, 256, 3, padding=1),
+            nn.ReLU(True)
+        )
+        self.Reconstruction = nn.Sequential(
+            nn.Conv2d(256, 1, 3, padding=1),
+            nn.ReLU(True)
+        )
+        self.WeightSum = nn.Conv2d(recur_time, 1, 1)
+
+    def forward(self, img):
+        skip = img
+        img = self.Embedding(img)
+        output = torch.empty(
+            (img.shape[0], self.recur_time, img.shape[2], img.shape[3]),device='cuda')
+        # 残差连接, 权值共享
+        for i in range(self.recur_time):
+            img = self.Inference(img)
+            output[:, i, :, :] = (skip+self.Reconstruction(img)).squeeze(1)
+        # 加权合并
+        output = self.WeightSum(output)
+        return output
+```
+
+### DRCN一些经验
+
+- 论文用到了自适应衰减的学习率和提前终止机制, 这能让训练效率大大提升, pytorch中对应的学习率调整器是: torch.optim.lr_scheduler.ReduceLROnPlateau
+- 显存足够的话用大batch大学习率也能得到很好的效果, 还能加快训练
+- 论文中提到了越深的递归效果越好, 实践中10层左右的递归就已经能有很好的结果了
+- DRCN还用到了称作递归监督的组合损失, 一边计算每个递归层输出的损失一边评判最后的加权损失, 以求所有递归都能得到较好的训练, 目的是避免梯度爆炸/消失. 这是个值得一试的思想, 能让网络一开始更好收敛, 不过直接使用最后的加权误差来进行训练效果也不错.
