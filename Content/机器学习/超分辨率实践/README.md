@@ -21,6 +21,10 @@
     - [DRCN网络结构](#drcn网络结构)
     - [DRCN简单实现](#drcn简单实现)
     - [DRCN一些经验](#drcn一些经验)
+  - [RED(2016) 编码-解码残差](#red2016-编码-解码残差)
+    - [RED网络结构](#red网络结构)
+    - [RED简单实现](#red简单实现)
+    - [RED一些经验](#red一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -32,7 +36,7 @@ Learning a Deep Convolutional Network for Image Super-Resolution
 
 ![picture 1](Media/4740a16039a2cac2d91363372190bc756add50cb52fe460c6ef40febe2177f42.png)  
 
-结构很简单, 就是三个卷积层, 两个激活层的组合.
+作为最早的超分辨率神经网络, 结构很简单, 就是三个卷积层, 两个激活层的组合, 效果自然也不敢恭维
 
 ### SRCNN简单实现
 
@@ -58,8 +62,8 @@ class SRCNN(nn.Module):
 
 ### SRCNN一些经验
 
-- 多通道超分辨率训练难度大且效果不佳, 因此通过将RGB图像转到YCrCb空间中, 然后只取其Y通道进行超分辨率计算, 完成计算后再配合简单插值处理的CrCb通道
-- 卷积网络不好训练, 原文使用了ImageNet这样庞大的数据集, 事实上T91就可以得到训练效果
+- 多通道超分辨率训练难度大且效果不佳, 因此通过将RGB图像转到YCrCb空间中, 然后只取其Y通道进行超分辨率计算, 完成计算后再配合简单插值处理的CrCb通道. 这种处理方法也被用在了后来的很多超分辨率网络中
+- 尽管卷积网络不好训练, 原文使用了ImageNet这样庞大的数据集, 但事实上对于这样很浅的网络用T91就可以得到训练效果
 - 用阶段改变学习率的动量SGD效果比Adam更好
 - 小batch收敛起来更有效些
 
@@ -71,7 +75,7 @@ Accelerating the Super-Resolution Convolutional Neural Network
 
 ![picture 1](Media/f86ebc8d6d46cdeb2bce86d814e8ff1db3ae343c5903d11facb4c58ec61b8c32.png)  
 
-其与SRCNN最大的区别就是结尾使用的反卷积层, 通过反卷积让我们可以直接用没有插值的低分辨率图片进行超分辨率学习, 从而减少超分辨途中的参数数量, 加快网络效率. 并且使用了PReLU作为激活层, 使得激活层本身也可以被学习来提高网络效果
+从上面论文中的对比图可以发现其与SRCNN最大的区别就是结尾使用的反卷积层, 反卷积让我们可以直接用没有插值的低分辨率图片进行超分辨率学习, 从而减少超分辨途中的参数数量, 加快网络效率. 并且使用了PReLU作为激活层, 使得激活层本身也可以被学习来提高网络效果
 
 ### FSRCNN简单实现
 
@@ -145,6 +149,7 @@ class ESPCN(nn.Module):
 
 - ESPCN用小LR块训练效果更好
 - 注意网络最后一层不要再放入激活层了, 会有反作用
+- 这个网络训练很快效果也很不错, 思路也有很大参考价值
 
 ## VDSR(2016) 深度残差神经网络
 
@@ -247,3 +252,72 @@ class DRCN(nn.Module):
 - 显存足够的话用大batch大学习率也能得到很好的效果, 还能加快训练
 - 论文中提到了越深的递归效果越好, 实践中10层左右的递归就已经能有很好的结果了
 - DRCN还用到了称作递归监督的组合损失, 一边计算每个递归层输出的损失一边评判最后的加权损失, 以求所有递归都能得到较好的训练, 目的是避免梯度爆炸/消失. 这是个值得一试的思想, 能让网络一开始更好收敛, 不过直接使用最后的加权误差来进行训练效果也不错.
+
+## RED(2016) 编码-解码残差
+
+Image Restoration Using Convolutional Auto-encoders with Symmetric Skip Connections
+
+### RED网络结构
+
+![picture 1](Media/d04547cbd6aa1b643133b32973b401dd1e783170c2e6efdca48f62f9c21bad38.png)  
+
+可以看作FSRCNN和VDSR的结合体, 网络自身是卷积和反卷积组合成的对称结构, 每step层就进行一次残差连接, 通过这样反复的特征提取以期望得到质量更高的低分辨率图, 最后用一个反卷积恢复大小. 对称的特征提取组合有学习意义, 可惜最后的反卷积层过于粗暴使得效果不佳
+
+### RED简单实现
+
+```python
+class RED(nn.Module):
+    def __init__(self,ratio=2, num_feature=32, num_con_decon_mod=5, filter_size=3, skip_step=2):
+        super(RED, self).__init__()
+        if num_con_decon_mod//skip_step < 1:
+            print('Size ERROR!')
+            return
+        self.num_con_decon_mod = num_con_decon_mod
+        self.skip_step = skip_step
+        self.input_conv = nn.Sequential(
+            nn.Conv2d(1, num_feature, 3, padding=1),
+            nn.ReLU(True)
+            )
+        # 提取特征, 要保持大小不变
+        conv_seq = []
+        for i in range(0, num_con_decon_mod):
+            conv_seq.append(nn.Sequential(
+                nn.Conv2d(num_feature, num_feature,
+                          filter_size, padding=filter_size//2),
+                nn.ReLU(True)
+            ))
+        self.convs= nn.Sequential(*conv_seq)
+        # 反卷积返还特征, 要保持大小不变
+        deconv_seq = []
+        for i in range(0, num_con_decon_mod):
+            deconv_seq.append(nn.Sequential(
+                nn.ConvTranspose2d(num_feature, num_feature, filter_size,padding=filter_size//2),
+                nn.ReLU(True)
+            ))
+        self.deconvs=nn.Sequential(*deconv_seq)
+        # 真正的放大步骤
+        self.output_conv = nn.ConvTranspose2d(num_feature, 1, 3,stride=ratio,padding=filter_size//2)
+
+    def forward(self, img):
+        img = self.input_conv(img)
+        skips = []
+        # 对称残差连接
+        for i in range(0, self.num_con_decon_mod):
+            if i%self.skip_step==0:
+                skips.append(img)
+            img = self.convs[i](img)
+        for i in range(0, self.num_con_decon_mod):
+            img = self.deconvs[i](img)
+            if i%self.skip_step==0:
+                img=img+skips.pop()
+                # 测试中这里不激活效果更好
+                # img=torch.relu(img+skips.pop())
+        img=self.output_conv(img)
+        return img
+
+```
+
+### RED一些经验
+
+- 论文的原始结构中每次残差合并后需要进行一次relu激活, 实践中发现没有这个激活效果也足够
+- 嵌套残差连接的写法要记住
