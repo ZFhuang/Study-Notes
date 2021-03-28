@@ -25,6 +25,10 @@
     - [RED网络结构](#red网络结构)
     - [RED简单实现](#red简单实现)
     - [RED一些经验](#red一些经验)
+  - [DRNN 改进的深度递归残差网络](#drnn-改进的深度递归残差网络)
+    - [DRNN网络结构](#drnn网络结构)
+    - [DRNN简单实现](#drnn简单实现)
+    - [DRNN一些经验](#drnn一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -321,3 +325,81 @@ class RED(nn.Module):
 
 - 论文的原始结构中每次残差合并后需要进行一次relu激活, 实践中发现没有这个激活效果也足够
 - 嵌套残差连接的写法要记住
+
+## DRNN 改进的深度递归残差网络
+
+### DRNN网络结构
+
+![picture 1](Media/533eab9b3daf0aa9d044826fe6f8084eec0a063b64cefafbabf0e50ba8339f04.png)  
+
+可以理解为VDSR和DRCN的结合体, 网络的大骨架是VSDR式的全残差型, 但是图中每个RB块都是多个递归的小残差块组成, 也就是右图中的conv-conv组合是参数共享的递归形式的, 这样的结构使得不断学习之下也能较好表征深度特征. 但是和其它深度网络类似, 由于参数数目过多导致训练起来非常耗时, 而且要注意在训练函数中进行梯度裁剪减少梯度爆炸或梯度弥散的出现.
+
+### DRNN简单实现
+
+```python
+class DRRN(nn.Module):
+    # 文中建议的各层组合是令 d=(1+2*num_resid_units)*num_recur_blocks+1 为 20左右
+    def __init__(self, num_recur_blocks=1, num_resid_units=15, num_filter=128, filter_size=3):
+        super(DRRN, self).__init__()
+        # 多个递归块连接
+        seq = []
+        for i in range(num_recur_blocks):
+            if i == 0:
+                # 第一个递归块
+                seq.append(RecursiveBlock(
+                    num_resid_units, 1, num_filter, filter_size))
+            else:
+                seq.append(RecursiveBlock(num_resid_units,
+                                          num_filter, num_filter, filter_size))
+        self.residual_blocks = nn.Sequential(*seq)
+        # 最终的出口卷积
+        self.last_conv = nn.Conv2d(
+            num_filter, 1, filter_size, padding=filter_size//2)
+
+    def forward(self, img):
+        skip = img
+        img = self.residual_blocks(img)
+        img = self.last_conv(img)
+        # 总残差
+        img = skip+img
+        return img
+
+
+class RecursiveBlock(nn.Module):
+    # 类似DRCN的递归残差结构, 在RecursiveBlock内部的多个ResidualBlock权值是共享的
+    def __init__(self, num_resid_units=3, input_channel=128, output_channel=128, filter_size=3):
+        super(RecursiveBlock, self).__init__()
+        self.num_resid_units = num_resid_units
+        # 递归块的入口卷积
+        self.input_conv = nn.Conv2d(
+            input_channel, output_channel, filter_size, padding=filter_size//2)
+        self.residual_unit = nn.Sequential(
+            # 两个conv组, 都有一套激活和加权
+            nn.Conv2d(output_channel, output_channel, filter_size,
+                      padding=filter_size//2),
+            nn.BatchNorm2d(output_channel),
+            nn.ReLU(True),
+            nn.Conv2d(output_channel, output_channel, 1),
+
+            nn.Conv2d(output_channel, output_channel, filter_size,
+                      padding=filter_size//2),
+            nn.BatchNorm2d(output_channel),
+            nn.ReLU(True),
+            nn.Conv2d(output_channel, output_channel, 1)
+        )
+
+    def forward(self, x_b):
+        x_b = self.input_conv(x_b)
+        skip = x_b
+        # 多次残差, 重复利用同一个递归块
+        for i in range(self.num_resid_units):
+            x_b = self.residual_unit(x_b)
+            x_b = skip+x_b
+        return x_b
+```
+
+### DRNN一些经验
+
+- 深度学习非常难训练, 如果想要短时间出效果的话务必使用较少的递归块并减少滤波器通道数来减少参数数量, 然后通过增加递归次数来弥补性能损失, 例如可以采用B1U5F32的组合
+- 网络上有些实现将batchnorm层删去, 但实验证明保留着batchnorm层也能得到效果
+- 论文中提到减少递归块的数目, 增加递归次数能够得到好的效果, 论文最后使用了B1U25F128的组合, 两块TITANX训练了4天, 非常耗时, 而且结果也并没有比DRCN好多少, 这个网络还是性能有限
