@@ -29,6 +29,10 @@
     - [DRNN网络结构](#drnn网络结构)
     - [DRNN简单实现](#drnn简单实现)
     - [DRNN一些经验](#drnn一些经验)
+  - [LapSRN 递归拉普拉斯金字塔](#lapsrn-递归拉普拉斯金字塔)
+    - [LapSRN网络结构](#lapsrn网络结构)
+    - [LapSRN简单实现](#lapsrn简单实现)
+    - [LapSRN一些经验](#lapsrn一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -402,4 +406,57 @@ class RecursiveBlock(nn.Module):
 
 - 深度学习非常难训练, 如果想要短时间出效果的话务必使用较少的递归块并减少滤波器通道数来减少参数数量, 然后通过增加递归次数来弥补性能损失, 例如可以采用B1U5F32的组合
 - 网络上有些实现将batchnorm层删去, 但实验证明保留着batchnorm层也能得到效果
-- 论文中提到减少递归块的数目, 增加递归次数能够得到好的效果, 论文最后使用了B1U25F128的组合, 两块TITANX训练了4天, 非常耗时, 而且结果也并没有比DRCN好多少, 这个网络还是性能有限
+- 论文中提到减少递归块的数目, 增加递归次数能够得到好的效果, 论文最后使用了B1U25F128的组合, 两块TITANX在Mix291上训练了4天, 非常耗时, 而且结果仅仅比DRCN好一点, 这个结构很值得怀疑
+  
+## LapSRN 递归拉普拉斯金字塔
+
+### LapSRN网络结构
+
+![picture 1](Media/331740dc96364098a85c6285e5bde7a61a4fa8fe010868d985ef740b3fb23876.png)  
+
+借用[【超分辨率】Laplacian Pyramid Networks（LapSRN）](https://blog.csdn.net/shwan_ma/article/details/78690974)的网络配图, 可以看到LapSRN的特点是递归结构减少参数量和逐级上采样的结构, 这使得即使面对高倍率的放大任务这个网络也能得到比较稳定的重建结果. 
+
+且由于使用了递归结构和逐级的参数共享, 残差与原始图分流的金字塔结构, 这个网络执行高效, 训练也不困难, 很值得学习.
+
+![picture 2](Media/aacb1f11c072d72eeee36dacef0bb3479bc8c94b6d3830ec431b275acb870f48.png)  
+
+网络还采用了Charbonnier损失函数, 称这个L1loss的变种可以让重建出来的图片不像MSEloss那么模糊, 测试中感觉实际效果有限.
+
+### LapSRN简单实现
+
+```python
+class LapSRN(nn.Module):
+    def __init__(self, fea_chan=64, scale=2, conv_num=3):
+        super(LapSRN, self).__init__()
+        # 根据所需的放大倍数计算递归次数
+        self.level_num = int(scale/2)
+        # 名字带有share的层会在递归中共享参数
+        self.share_ski_upsample = nn.ConvTranspose2d(
+            1, 1, 4, stride=scale, padding=1)
+        self.input_conv = nn.Conv2d(1, fea_chan, 3, padding=1)
+        seq = []
+        for _ in range(conv_num):
+            seq.append(nn.Conv2d(fea_chan, fea_chan, 3, padding=1))
+            seq.append(nn.LeakyReLU(0.2, True))
+        self.share_embedding = nn.Sequential(*seq)
+        self.share_fea_upsample = nn.ConvTranspose2d(
+            fea_chan, fea_chan, 4, stride=scale, padding=1)
+        self.share_output_conv = nn.Conv2d(fea_chan, 1, 3, padding=1)
+
+    def forward(self, img):
+        # 特点是既要准备一个向深层传递的残差层, 也要保持一个向下传递的原始层
+        tmp = self.input_conv(img)
+        for _ in range(self.level_num):
+            skip = self.share_ski_upsample(img)
+            img = self.share_embedding(tmp)
+            img = self.share_fea_upsample(img)
+            tmp = img
+            img = self.share_output_conv(img)
+            img = img+skip
+        return img
+```
+
+### LapSRN一些经验
+
+- 反卷积层别忘了要进行双线性参数化
+- 实际使用中对于较小的放大倍率很多的卷积层(3-5层足矣)就能得到很好的效果
