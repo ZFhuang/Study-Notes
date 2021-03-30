@@ -11,7 +11,7 @@
     - [FSRCNN一些经验](#fsrcnn一些经验)
   - [ESPCN(2016) 实时进行的亚像素卷积](#espcn2016-实时进行的亚像素卷积)
     - [ESPCN网络结构](#espcn网络结构)
-    - [ESPCN的简单实现](#espcn的简单实现)
+    - [ESPCN简单实现](#espcn简单实现)
     - [ESPCN一些经验](#espcn一些经验)
   - [VDSR(2016) 深度残差神经网络](#vdsr2016-深度残差神经网络)
     - [VDSR网络结构](#vdsr网络结构)
@@ -25,14 +25,18 @@
     - [RED网络结构](#red网络结构)
     - [RED简单实现](#red简单实现)
     - [RED一些经验](#red一些经验)
-  - [DRNN 改进的深度递归残差网络](#drnn-改进的深度递归残差网络)
+  - [DRNN(2017) 改进的深度递归残差网络](#drnn2017-改进的深度递归残差网络)
     - [DRNN网络结构](#drnn网络结构)
     - [DRNN简单实现](#drnn简单实现)
     - [DRNN一些经验](#drnn一些经验)
-  - [LapSRN 递归拉普拉斯金字塔](#lapsrn-递归拉普拉斯金字塔)
+  - [LapSRN(2017) 递归拉普拉斯金字塔](#lapsrn2017-递归拉普拉斯金字塔)
     - [LapSRN网络结构](#lapsrn网络结构)
     - [LapSRN简单实现](#lapsrn简单实现)
     - [LapSRN一些经验](#lapsrn一些经验)
+  - [SRDenseNet(2017) 稠密残差超分辨(也称SRResNet)](#srdensenet2017-稠密残差超分辨也称srresnet)
+    - [SRDenseNet网络结构](#srdensenet网络结构)
+    - [SRDenseNet简单实现](#srdensenet简单实现)
+    - [SRDenseNet一些经验](#srdensenet一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -133,7 +137,7 @@ Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel C
 
 ![picture 3](Media/3913f4b4d67b37cb06b6ddd12d71841fb250715ddf04ac6e467ddbb0ef59a5b7.png)  
 
-### ESPCN的简单实现
+### ESPCN简单实现
 
 ```python
 class ESPCN(nn.Module):
@@ -330,7 +334,7 @@ class RED(nn.Module):
 - 论文的原始结构中每次残差合并后需要进行一次relu激活, 实践中发现没有这个激活效果也足够
 - 嵌套残差连接的写法要记住
 
-## DRNN 改进的深度递归残差网络
+## DRNN(2017) 改进的深度递归残差网络
 
 ### DRNN网络结构
 
@@ -408,7 +412,7 @@ class RecursiveBlock(nn.Module):
 - 网络上有些实现将batchnorm层删去, 但实验证明保留着batchnorm层也能得到效果
 - 论文中提到减少递归块的数目, 增加递归次数能够得到好的效果, 论文最后使用了B1U25F128的组合, 两块TITANX在Mix291上训练了4天, 非常耗时, 而且结果仅仅比DRCN好一点, 这个结构很值得怀疑
   
-## LapSRN 递归拉普拉斯金字塔
+## LapSRN(2017) 递归拉普拉斯金字塔
 
 ### LapSRN网络结构
 
@@ -460,3 +464,111 @@ class LapSRN(nn.Module):
 
 - 反卷积层别忘了要进行双线性参数化
 - 实际使用中对于较小的放大倍率很多的卷积层(3-5层足矣)就能得到很好的效果
+
+
+## SRDenseNet(2017) 稠密残差超分辨(也称SRResNet)
+
+### SRDenseNet网络结构
+
+![picture 1](Media/cd398a2b1ec1bf292f6745bd16cb44fbee016f2929627db0d92cd5d06f904a35.png)  
+
+SRDenseNet的结构比较复杂, 结合了稠密块和残差网络的思想. 其完整形式就是上图的结构, 用残差连接多个稠密块, 目的是提取出最深层有效的特征, 然后用瓶颈层减少前面过多的通道数, 最后反卷积得到超分辨率. 这个结构的特点是稍微改改超参数网络的规模就会极具扩大, 尽管稠密块可以较好地复用之前的参数让深度网络训练变得容易, 但是稠密块和残差连接使得显存消耗很大, 而且训练时推理速度较慢, 由于没有使用论文中那么大的数据集(5w)因此本地实验结果效果不是很好.
+
+![picture 2](Media/e2c1494ac9ae3da99062b38056438a4f5edc9cc7c648f52ac7f6c7111fa90b3a.png)  
+
+稠密块就是上图的结构, 网上有很多介绍, 核心特点是其内部每层卷积向前传递时都会把当前的参数直接连接到下一层, 使得网络训练起来变得更容易.
+
+### SRDenseNet简单实现
+
+```python
+class SRDenseNet(nn.Module):
+    def __init__(self, scale=4, dense_input_chan=16, growth_rate=16, bottleneck_channel=256, num_dense_conv=8, num_dense=8):
+        super(SRDenseNet, self).__init__()
+        logging.debug('scale: '+str(scale))
+        logging.debug('dense_input_chan: '+str(dense_input_chan))
+        logging.debug('growth_rate: '+str(growth_rate))
+        logging.debug('bottleneck_channel: '+str(bottleneck_channel))
+        logging.debug('num_dense_conv: '+str(num_dense_conv))
+        logging.debug('num_dense: '+str(num_dense))
+        self.dense_input_chan = dense_input_chan
+        self.growth_rate = growth_rate
+        self.num_dense_conv = num_dense_conv
+        self.num_dense=num_dense
+
+        # 输入层, 通道数转为dense_input_chan
+        self.input = nn.Conv2d(1, dense_input_chan, 3, padding=1)
+
+        # 稠密层, 由多个稠密块组成, 有skip连接, 输出通道num_dense*num_dense_conv*growth_rate+dense_input_chan
+        seq = []
+        for i in range(num_dense):
+            seq.append(DenseBlock((i*num_dense_conv*growth_rate) +
+                                  dense_input_chan, growth_rate, num_dense_conv))
+        self.dense_blocks = nn.Sequential(*seq)
+
+        # 缩小输出时候的维度的瓶颈层, 输出通道bottleneck_channel
+        self.bottleneck = bottleneck_layer(
+            num_dense*num_dense_conv*growth_rate+dense_input_chan, bottleneck_channel)
+
+        # 用于上采样的反卷积层, 通道保持bottleneck_channel
+        seq = []
+        for _ in range(scale//2):
+            seq.append(nn.ConvTranspose2d(bottleneck_channel,
+                                          bottleneck_channel, 3, stride=2, padding=1))
+        self.deconv = nn.Sequential(*seq)
+
+        # 输出层, 输出通道1
+        self.output = nn.Conv2d(bottleneck_channel, 1, 3, padding=1)
+
+    def forward(self, x):
+        x = self.input(x)
+        for i in range(self.num_dense):
+            dense_skip = x
+            x = self.dense_blocks[i](x)
+            # 稠密残差连接, 把连接前的值加到连接后的部分
+            x[:, 0:(i*self.num_dense_conv*self.growth_rate)+self.dense_input_chan, :, :] = (
+                dense_skip+x[:, 0:(i*self.num_dense_conv*self.growth_rate)+self.dense_input_chan, :, :])
+        x = self.bottleneck(x)
+        x = self.deconv(x)
+        x = self.output(x)
+        return x
+
+
+def bottleneck_layer(in_channel, out_channel):
+    return nn.Sequential(
+        nn.BatchNorm2d(in_channel),
+        nn.ReLU(True),
+        # 重点是卷积核是1x1的
+        nn.Conv2d(in_channel, out_channel, 1),
+    )
+
+def conv_layer(in_channel, out_channel):
+    return nn.Sequential(
+        nn.BatchNorm2d(in_channel),
+        nn.ReLU(True),
+        nn.Conv2d(in_channel, out_channel, 3,padding=1),
+    )
+
+class DenseBlock(nn.Module):
+    def __init__(self, in_channel=16, growth_rate=16, num_convs=8):
+        super(DenseBlock, self).__init__()
+        self.num_convs = num_convs
+        seq = []
+        for _ in range(num_convs):
+            # 不断连接并增加着的特征图
+            seq.append(conv_layer(in_channel, growth_rate))
+            in_channel = in_channel+growth_rate
+        self.convs = nn.Sequential(*seq)
+
+    def forward(self, x):
+        for i in range(self.num_convs):
+            # 拼接之前得到的特征图
+            y=self.convs[i](x)
+            x = torch.cat((x, y), dim=1)
+        return x
+
+```
+
+### SRDenseNet一些经验
+
+- 深度网络一如既往地难训练, 不过论文中的量化结果似乎也不是很好
+- 论文结构中网络只能进行4倍超分辨, 通过我上面的实现其余2倍数任务也能进行
