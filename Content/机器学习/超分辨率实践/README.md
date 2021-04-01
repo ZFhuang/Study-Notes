@@ -37,6 +37,10 @@
     - [SRDenseNet网络结构](#srdensenet网络结构)
     - [SRDenseNet简单实现](#srdensenet简单实现)
     - [SRDenseNet一些经验](#srdensenet一些经验)
+  - [SRGAN(2017) 生成对抗超分辨](#srgan2017-生成对抗超分辨)
+    - [SRGAN网络结构](#srgan网络结构)
+    - [SRGAN简单实现](#srgan简单实现)
+    - [SRGAN一些经验](#srgan一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -336,6 +340,8 @@ class RED(nn.Module):
 
 ## DRNN(2017) 改进的深度递归残差网络
 
+Image Super-Resolution via Deep Recursive Residual Network
+
 ### DRNN网络结构
 
 ![picture 1](Media/533eab9b3daf0aa9d044826fe6f8084eec0a063b64cefafbabf0e50ba8339f04.png)  
@@ -414,6 +420,8 @@ class RecursiveBlock(nn.Module):
   
 ## LapSRN(2017) 递归拉普拉斯金字塔
 
+Deep Laplacian Pyramid Networks for Fast and Accurate Super-Resolution
+
 ### LapSRN网络结构
 
 ![picture 1](Media/331740dc96364098a85c6285e5bde7a61a4fa8fe010868d985ef740b3fb23876.png)  
@@ -467,6 +475,8 @@ class LapSRN(nn.Module):
 
 
 ## SRDenseNet(2017) 稠密超分辨
+
+Image Super-Resolution Using Dense Skip Connections
 
 ### SRDenseNet网络结构
 
@@ -569,3 +579,135 @@ class DenseBlock(nn.Module):
 - Adam训练深度网络时可能在中间出现loss反弹
 - 训练时可以将目标高分辨率图片归一化到(-1,1), 对训练结果有一点加强
 - 瓶颈层不要有batchnorm, 过度的激活让输出效果很差
+
+## SRGAN(2017) 生成对抗超分辨
+
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
+
+### SRGAN网络结构
+
+![picture 1](Media/4d8fff29448f2d6894e9f036426f50bed98909881771346497aece132238570c.png)  
+
+GAN就是需要两个网络共同运作, 一个称为生成网络, 用来产生超分辨率的图, 一个判别网络, 用来检测生成的图是不是与真实高分辨率图很接近. 需要在迭代中依次训练两个网络, 让判别网络的结果作为loss强化生成网络的生成, 更强的生成网络又反过来让判别网络更难判断. 通过GAN的网络结构可以得到视觉表现上更好的超分辨率结果(不过在量化结果上没有其它方法那么好).
+
+![picture 2](Media/34d188f6061b5a1a56549d0f5e3d03cf88766eaedc1c676dea81695fa84da6c7.png)  
+
+GAN超分辨率除了两个网络互相配合外, 核心就是将两个网络连接在一起的损失函数. 文章让生成网络的损失是MSE损失和判别网络判别概率求和加权如上式, 这个权值的改变将影响生成出来的图片是更偏向于MSE指标还是更偏向人眼特征.
+
+### SRGAN简单实现
+
+```python
+class SRGAN_generator(nn.Module):
+    # 也称SRResNet, 用来生成图像
+    def __init__(self, scale=4, in_channel=3, num_filter=64, num_resiblk=16):
+        super(SRGAN_generator, self).__init__()
+        self.num_filter = num_filter
+        self.num_resiblk = num_resiblk
+        self.input_conv = nn.Sequential(
+            nn.Conv2d(in_channel, num_filter, 9, padding=4),
+            nn.PReLU()
+        )
+        # 大量的残差块
+        seq = []
+        for _ in range(num_resiblk):
+            seq.append(nn.Sequential(
+                nn.Conv2d(num_filter, num_filter, 3, padding=1),
+                nn.BatchNorm2d(num_filter),
+                nn.PReLU(),
+                nn.Conv2d(num_filter, num_filter, 3, padding=1),
+                nn.BatchNorm2d(num_filter),
+            ))
+        self.residual_blocks = nn.Sequential(*seq)
+        self.resi_out = nn.Sequential(
+            nn.Conv2d(num_filter, num_filter, 3, padding=1),
+            nn.BatchNorm2d(num_filter),
+        )
+        # 上采样
+        seq = []
+        for _ in range(scale//2):
+            seq.append(nn.Sequential(
+                nn.Conv2d(num_filter, num_filter*4, 3, padding=1),
+                nn.PixelShuffle(2),
+                nn.PReLU()
+            ))
+        self.upsample = nn.Sequential(*seq)
+        self.output_conv = nn.Conv2d(num_filter, in_channel, 3, padding=1)
+
+    def forward(self, x):
+        x = self.input_conv(x)
+        # 内外两种残差连接
+        skip = x
+        resi_skip = x
+        for i in range(self.num_resiblk):
+            x = self.residual_blocks[i](x)+resi_skip
+            resi_skip = x
+        x = self.resi_out(x)+skip
+        x = self.upsample(x)
+        return self.output_conv(x)
+
+
+class SRGAN_discriminator(nn.Module):
+    # 也称VGG19, 用来判别当前图像是否是真实的
+    def __init__(self, in_channel=3):
+        super(SRGAN_discriminator, self).__init__()
+        self.input_conv = nn.Sequential(
+            nn.Conv2d(in_channel, 64, 3, padding=1),
+            nn.LeakyReLU(inplace=True)
+        )
+        # 大量卷积层来提取特征
+        self.convs = nn.Sequential(
+            conv_layer(64, 64, 2),
+            conv_layer(64, 128, 1),
+            conv_layer(128, 128, 2),
+            conv_layer(128, 256, 1),
+            conv_layer(256, 256, 2),
+            conv_layer(256, 512, 1),
+            conv_layer(512, 512, 2)
+        )
+        self.output_conv = nn.Sequential(
+            # 这里通过池化和卷积将高维数据变为单一的正负输出
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(512, 1024, 1, padding=0),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(1024, 1, 1, padding=0)
+        )
+
+    def forward(self, x):
+        batch_size = x.size(0)
+        x = self.input_conv(x)
+        x = self.convs(x)
+        x = self.output_conv(x)
+        # 注意分类网络最后的激活
+        return torch.sigmoid(x.view(batch_size))
+
+
+def conv_layer(in_channel, out_channel, stride):
+    return nn.Sequential(
+        nn.Conv2d(in_channel, out_channel, 3, stride=stride, padding=1),
+        nn.BatchNorm2d(out_channel),
+        nn.LeakyReLU(inplace=True)
+    )
+
+
+class Adversarial_loss(nn.Module):
+    # 损失函数, 是两种损失的结合
+    def __init__(self, disc_alpha=1e-3):
+        super(Adversarial_loss, self).__init__()
+        self.alpha = disc_alpha
+        self.mse_loss = nn.MSELoss()
+
+    def forward(self, X, Y, loss_disc):
+        # 图像本身loss是MSE
+        loss = self.mse_loss(X,Y)
+        # 判别器loss
+        _loss_disc=loss_disc.detach()
+        _loss_disc=torch.sum(-torch.log(_loss_disc))
+        # 结合
+        loss = loss+self.alpha*_loss_disc
+        return loss
+```
+
+### SRGAN一些经验
+
+- 训练GAN网络需要仔细的调参和大量的数据与训练时间
+- 判别器的训练类似二分类网络, 按照二分类网络思路进行编写和训练即可
