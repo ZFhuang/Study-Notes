@@ -41,6 +41,10 @@
     - [SRGAN网络结构](#srgan网络结构)
     - [SRGAN简单实现](#srgan简单实现)
     - [SRGAN一些经验](#srgan一些经验)
+  - [EDSR(2017) 改进的残差超分辨](#edsr2017-改进的残差超分辨)
+    - [EDSR网络结构](#edsr网络结构)
+    - [EDSR简单实现](#edsr简单实现)
+    - [EDSR一些经验](#edsr一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -598,7 +602,7 @@ GAN超分辨率除了两个网络互相配合外, 核心就是将两个网络连
 
 ```python
 class SRGAN_generator(nn.Module):
-    # 也称SRResNet, 用来生成图像
+    # 基于SRResNet, 用来生成图像
     def __init__(self, scale=4, in_channel=3, num_filter=64, num_resiblk=16):
         super(SRGAN_generator, self).__init__()
         self.num_filter = num_filter
@@ -647,7 +651,7 @@ class SRGAN_generator(nn.Module):
 
 
 class SRGAN_discriminator(nn.Module):
-    # 也称VGG19, 用来判别当前图像是否是真实的
+    # 基于VGG19, 用来判别当前图像是否是真实的
     def __init__(self, in_channel=3):
         super(SRGAN_discriminator, self).__init__()
         self.input_conv = nn.Sequential(
@@ -711,3 +715,66 @@ class Adversarial_loss(nn.Module):
 
 - 训练GAN网络需要仔细的调参和大量的数据与训练时间
 - 判别器的训练类似二分类网络, 按照二分类网络思路进行编写和训练即可
+
+## EDSR(2017) 改进的残差超分辨
+
+Enhanced Deep Residual Networks for Single Image Super-Resolution
+
+### EDSR网络结构
+
+![picture 1](Media/551566cf1cd803af0d8e2b0e49b6e235bb2d94eaac2ac2f6b611926fa502e072.png)  
+
+EDSR是从SRResNet改进而来的, 主要是删去了SRResNet的大量batchnorm层, 因为文中说batchnorm大大影响了网络的灵活性, 删去batchnorm层后每个残差块结尾都加上了一个scale层降低残差输出的强度, 目的是减少多层残差网络容易出现的数值不稳定性. 实际测试中EDSR表现还算不错, 训练比较快效果也不错.
+
+### EDSR简单实现
+
+```python
+class EDSR(nn.Module):
+    def __init__(self, scale=4, in_channel=3, num_filter=256, num_resiblk=32, resi_scale=0.1):
+        super(EDSR, self).__init__()
+        self.num_filter = num_filter
+        self.num_resiblk = num_resiblk
+        self.resi_scale=resi_scale
+        self.input_conv = nn.Sequential(
+            nn.Conv2d(in_channel, num_filter, 9, padding=4),
+        )
+        # 大量的残差块, 去掉了bn层, 且残差以外不再有relu
+        seq = []
+        for _ in range(num_resiblk):
+            seq.append(nn.Sequential(
+                nn.Conv2d(num_filter, num_filter, 3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(num_filter, num_filter, 3, padding=1),
+            ))
+        self.residual_blocks = nn.Sequential(*seq)
+        self.resi_out = nn.Sequential(
+            nn.Conv2d(num_filter, num_filter, 3, padding=1),
+        )
+        # 上采样
+        seq = []
+        for _ in range(scale//2):
+            seq.append(nn.Sequential(
+                nn.Conv2d(num_filter, num_filter*4, 3, padding=1),
+                nn.PixelShuffle(2),
+            ))
+        self.upsample = nn.Sequential(*seq)
+        self.output_conv = nn.Conv2d(num_filter, in_channel, 3, padding=1)
+
+    def forward(self, x):
+        x = self.input_conv(x)
+        # 内外两种残差连接
+        skip = x
+        resi_skip = x
+        for i in range(self.num_resiblk):
+            x = self.residual_blocks[i](x)*self.resi_scale+resi_skip
+            resi_skip = x
+        x = self.resi_out(x)+skip
+        x = self.upsample(x)
+        return self.output_conv(x)
+```
+
+### EDSR一些经验
+
+- 文中提到了MSEloss过于平滑的问题, 因此改用L1loss, 实验中确实能收敛到更好的结果
+- 文章在测试的时候使用了self-ensemble strategy测试方法, 也就是对于每个测试样例都进行8中变换得到8种输出, 然后对这8个输出变换回正常状态后取平均. 这样操作可以让量化结果再有些许增长
+- 文章还提出了可以训练多个缩放倍率的网络MDSR, 在此不表
