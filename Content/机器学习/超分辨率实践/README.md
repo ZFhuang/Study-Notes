@@ -45,6 +45,10 @@
     - [EDSR网络结构](#edsr网络结构)
     - [EDSR简单实现](#edsr简单实现)
     - [EDSR一些经验](#edsr一些经验)
+  - [DBPN(2018) 反向投影网络](#dbpn2018-反向投影网络)
+    - [DBPN网络结构](#dbpn网络结构)
+    - [DBPN简单实现](#dbpn简单实现)
+    - [DBPN一些经验](#dbpn一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -778,3 +782,124 @@ class EDSR(nn.Module):
 - 文中提到了MSEloss过于平滑的问题, 因此改用L1loss, 实验中确实能收敛到更好的结果
 - 文章在测试的时候使用了self-ensemble strategy测试方法, 也就是对于每个测试样例都进行8中变换得到8种输出, 然后对这8个输出变换回正常状态后取平均. 这样操作可以让量化结果再有些许增长
 - 文章还提出了可以训练多个缩放倍率的网络MDSR, 在此不表
+
+## DBPN(2018) 反向投影网络
+
+### DBPN网络结构
+
+![picture 2](Media/17dfa9b8192dd8276a0114e6fe74d26d580f72823dd63116dc2033ca7cd04e26.png)  
+
+DBPN的特点是其使用了反向投影结构来优化超分辨率, 核心思想就是将提高分辨率后的特征图重新进行下采样然后与一开始的低分辨率特征图做差比较, 尽量使得两张图接近, 这样重建出的高分辨率图能够在纹理上保持稳定性, 在高倍率缩放上能够得到更符合原图的效果而不会因为一开始重建的误差不断强化导致纹理走样.
+
+![picture 1](Media/c3744efb4438b35bc52e0cd015a7f65c33db0f58ee06fff3cdd95951f4566413.png)  
+
+然后到具体的模型搭建整体是DenseNet的结构, 轮流使用上下投影块然后进行Dense相连, 这样增加层数下确实能得到更好的效果.
+
+### DBPN简单实现
+
+```python
+class Dense_DBPN(nn.Module):
+    def __init__(self, in_channel=1, scale=2, num_pair=2,  num_filter=18, grow_rate=18):
+        super(Dense_DBPN, self).__init__()
+        self.num_pair = num_pair
+        self.feature_extraction = nn.Sequential(
+            nn.Conv2d(in_channel, 64, 3, padding=1),
+            nn.Conv2d(64, num_filter, 1, padding=0)
+        )
+
+        # pair+1个上采样块, 需要数量比下采样多一个
+        seq = []
+        seq.append(Up_projection(num_filter, grow_rate, scale))
+        for i in range(num_pair):
+            seq.append(Up_projection((i+1)*grow_rate, grow_rate, scale))
+        self.up_proj = nn.Sequential(*seq)
+
+        # pair个下采样块
+        seq = []
+        for i in range(num_pair):
+            seq.append(Down_projection(
+                (i+1)*grow_rate, grow_rate, scale))
+        self.down_proj = nn.Sequential(*seq)
+
+        self.reconstruction = nn.Conv2d(
+            (num_pair+1)*grow_rate, 1, 3, padding=1)
+
+    def forward(self, x):
+        x = self.feature_extraction(x)
+        up_skip = self.up_proj[0](x)
+        down_skip = []
+        for i in range(self.num_pair):
+            if i == 0:
+                down_skip = self.down_proj[i](up_skip)
+            else:
+                down_skip = torch.cat(
+                    (self.down_proj[i](up_skip), down_skip), dim=1)
+            up_skip = torch.cat((self.up_proj[i+1](down_skip), up_skip), dim=1)
+        x = self.reconstruction(up_skip)
+        return x
+
+
+class Up_projection(nn.Module):
+    # 每导入一次块就x2
+    def __init__(self, in_channel, out_channel=28, scale=2, deconv_size=8):
+        super(Up_projection, self).__init__()
+        self.input_conv = nn.Conv2d(in_channel, out_channel, 1, padding=0)
+        self.deconv_base = nn.Sequential(
+            nn.ConvTranspose2d(out_channel, out_channel,
+                               deconv_size, stride=scale, padding=deconv_size//2-1),
+            nn.PReLU()
+        )
+        self.conv = nn.Sequential(
+            nn.Conv2d(out_channel, out_channel, 6, stride=scale, padding=2),
+            nn.PReLU()
+        )
+        self.deconv_fea = nn.Sequential(
+            nn.ConvTranspose2d(out_channel, out_channel,
+                               deconv_size, stride=scale, padding=deconv_size//2-1),
+            nn.PReLU()
+        )
+
+    def forward(self, x):
+        x = self.input_conv(x)
+        skip_fea = x
+        x = self.deconv_base(x)
+        skip_base = x
+        x = self.conv(x)
+        x = self.deconv_fea(x-skip_fea)
+        return x+skip_base
+
+
+class Down_projection(nn.Module):
+    # 每导入一次块就x2
+    def __init__(self, in_channel, out_channel=28, scale=2, deconv_size=8):
+        super(Down_projection, self).__init__()
+        self.input_conv = nn.Conv2d(in_channel, out_channel, 1, padding=0)
+        self.conv_base = nn.Sequential(
+            nn.Conv2d(out_channel, out_channel, 6, stride=2, padding=2),
+            nn.PReLU()
+        )
+        self.deconv = nn.Sequential(
+            nn.ConvTranspose2d(out_channel, out_channel,
+                               deconv_size, stride=scale, padding=deconv_size//2-1),
+            nn.PReLU()
+        )
+        self.conv_fea = nn.Sequential(
+            nn.Conv2d(out_channel, out_channel, 6, stride=2, padding=2),
+            nn.PReLU()
+        )
+
+    def forward(self, x):
+        x = self.input_conv(x)
+        skip_fea = x
+        x = self.conv_base(x)
+        skip_base = x
+        x = self.deconv(x)
+        x = self.conv_fea(x-skip_fea)
+        return x+skip_base
+```
+
+### DBPN一些经验
+
+- 这个网络结构看起来很fancy但是实际上训练很慢, 而且文章使用了大量的数据才达到了不错的效果
+- 启用梯度裁剪可以加速收敛速度
+- 使用Adam进行训练时要注意loss反弹的问题, 可以通过定期降低学习率和设置更大的eps值来回避
