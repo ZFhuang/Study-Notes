@@ -49,6 +49,14 @@
     - [DBPN网络结构](#dbpn网络结构)
     - [DBPN简单实现](#dbpn简单实现)
     - [DBPN一些经验](#dbpn一些经验)
+  - [RCAN(2018) 引入注意力机制](#rcan2018-引入注意力机制)
+    - [RCAN网络结构](#rcan网络结构)
+    - [RCAN简单实现](#rcan简单实现)
+    - [RCAN一些经验](#rcan一些经验)
+  - [ZSSR(2018) 无监督超分辨率](#zssr2018-无监督超分辨率)
+    - [ZSSR网络结构](#zssr网络结构)
+    - [ZSSR简单实现](#zssr简单实现)
+    - [ZSSR一些经验](#zssr一些经验)
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
@@ -785,6 +793,8 @@ class EDSR(nn.Module):
 
 ## DBPN(2018) 反向投影网络
 
+DeepBack-Projection Networks For Super-Resolution
+
 ### DBPN网络结构
 
 ![picture 2](Media/17dfa9b8192dd8276a0114e6fe74d26d580f72823dd63116dc2033ca7cd04e26.png)  
@@ -903,3 +913,116 @@ class Down_projection(nn.Module):
 - 这个网络结构看起来很fancy但是实际上训练很慢, 而且文章使用了大量的数据才达到了不错的效果
 - 启用梯度裁剪可以加速收敛速度
 - 使用Adam进行训练时要注意loss反弹的问题, 可以通过定期降低学习率和设置更大的eps值来回避
+
+## RCAN(2018) 引入注意力机制
+
+Image Super-Resolution Using Very Deep Residual Channel Attention Networks
+
+### RCAN网络结构
+
+![picture 1](Media/b46fb4dd99dff8a4099b0729f6b74f0df25a85c6886aabb1e165f4e3b6cef4d6.png)  
+
+RCAN在超分辨率任务中引入了注意力机制, 其关注的问题是网络面对提取出来的层层特征没有各自的着重点, 都是平等看待的, 但是这不合理. 所以RCAN使用注意力模块CA将特征转为单个的权值, 然后利用这个权值对特征进行加权. 这个解释是有道理的但是很怀疑网络自己提取特征的时候是不是就已经进行了隐含的加权步骤, 最终网络的效果也不是很理想, 怀疑这个注意力提取不够有效.
+
+![picture 3](Media/6fb20a6d4b015a720c730e09a6fde9958eaeb17afbe1d445ada841de9119d2ae.png)  
+
+RCAN所使用的注意力结构CA就是上图的形式, 将一个个特征转为权值进行加权, 而网络本身是由残差结构组成的, 最后的真正的超分辨部分则是由传统的ESPCN进行的.
+
+### RCAN简单实现
+
+```python
+class RCAN(nn.Module):
+    def __init__(self, in_channel, scale=2, num_filter=64, num_residual_group=10, num_residual=20):
+        super(RCAN, self).__init__()
+        self.num_residual_group = num_residual_group
+        self.input_conv = nn.Conv2d(in_channel, num_filter, 3, padding=1)
+        seq = []
+        # 残差组
+        for _ in range(num_residual_group):
+            seq.append(RCAB(num_residual, num_filter))
+        self.rir = nn.Sequential(*seq)
+        self.rir_conv = nn.Conv2d(num_filter, num_filter, 3, padding=1)
+        self.upsample = ESPCN(num_filter, scale)
+        self.output_conv = nn.Conv2d(num_filter, in_channel, 3, padding=1)
+
+    def forward(self, x):
+        x = self.input_conv(x)
+        skip = x
+        x = self.rir(x)
+        x = skip+self.rir_conv(x)
+        x = self.upsample(x)
+        return self.output_conv(x)
+
+
+class CA(nn.Module):
+    def __init__(self, num_filter):
+        # 注意力模块, 核心是把特征进一步转为加权值, 但是实际意义感觉有限
+        super(CA, self).__init__()
+        self.HGP = nn.AdaptiveAvgPool2d((1,1))
+        self.wD = nn.Conv2d(num_filter, 4, 1)
+        self.wU = nn.Conv2d(4, num_filter, 1)
+        self.f = nn.Sigmoid()
+
+    def forward(self, x):
+        skip = x
+        x = self.HGP(x)
+        x = torch.relu_(self.wD(x))
+        x = self.wU(x)
+        x = self.f(x)
+        return skip*x
+
+
+class RCAB(nn.Module):
+    def __init__(self, num_residual, num_filter):
+        super(RCAB, self).__init__()
+        self.num_residual = num_residual
+        # 对卷积和注意力模块残差连接
+        seq = []
+        for _ in range(num_residual):
+            seq.append(nn.Sequential(
+                nn.Sequential(
+                    nn.Conv2d(num_filter, num_filter, 3, padding=1),
+                    nn.ReLU(True),
+                    nn.Conv2d(num_filter, num_filter, 3, padding=1)
+                ),
+                CA(num_filter)
+            ))
+        self.residuals = nn.Sequential(*seq)
+
+    def forward(self, x):
+        for i in range(self.num_residual):
+            skip = x
+            x = skip+self.residuals[i](x)
+        return x
+
+
+class ESPCN(nn.Module):
+    def __init__(self, in_channel, scale=2):
+        super(ESPCN, self).__init__()
+        self.add_module('n1 conv', nn.Conv2d(in_channel, 64, 5, padding=2))
+        self.add_module('tanh 1', nn.Tanh())
+        self.add_module('n2 conv', nn.Conv2d(64, 32, 3, padding=1))
+        self.add_module('tanh 2', nn.Tanh())
+        self.add_module('n3 conv', nn.Conv2d(32, in_channel*scale*scale, 3, padding=1))
+        self.add_module('pixel shuf', nn.PixelShuffle(scale))
+
+    def forward(self, x):
+        for module in self._modules.values():
+            x = module(x)
+        return x
+```
+
+### RCAN一些经验
+
+- 尽管有很多残差块, RCAN对梯度的处理依然不太好, 训练时很容易发生梯度爆炸/消失
+- 论文也是用了大量的数据来得到好的结果, 而提升有限
+
+## ZSSR(2018) 无监督超分辨率
+
+“Zero-Shot” Super-Resolution using Deep Internal Learning
+
+### ZSSR网络结构
+
+### ZSSR简单实现
+
+### ZSSR一些经验
