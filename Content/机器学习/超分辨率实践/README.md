@@ -60,6 +60,8 @@
 
 [从SRCNN到EDSR，总结深度学习端到端超分辨率方法发展历程](https://zhuanlan.zhihu.com/p/31664818)
 
+[深度学习端到端超分辨率方法发展历程（二）](https://zhuanlan.zhihu.com/p/50192019)
+
 ## SRCNN(2014) 最基础的卷积神经网络
 
 Learning a Deep Convolutional Network for Image Super-Resolution
@@ -1023,6 +1025,33 @@ class ESPCN(nn.Module):
 
 ### ZSSR网络结构
 
+![picture 4](Media/e571699533d47939d7232db714c08c9844325aa04ee86fa22eb6a2a2b3ce1a53.png)  
+
+ZSSR可以说是利用了深度学习容易造成过拟合的特点, 通过对目标图片自身作为高分辨率图来进行常用的一系列下采样, 数据扩容, 加噪声等操作, 然后这样来用自身进行超分辨率训练. 由于训练素材都来自自身所以过拟合反而成为优势, 且由此得到了训练速度快, 可以适应各种不同类型的数据的特性, 思路清晰训练也很有效. ZSSR的核心部分是数据扩容的操作, 网络上倒没有什么特别, 就是一个简单的多层全卷积网络, 然后训练网络输出的残差.
+
 ### ZSSR简单实现
 
+```python
+class ZSSR(nn.Module):
+    def __init__(self, in_channel=1, num_layers=8,num_filter=64):
+        # 简单的全卷积残差网络
+        super(ZSSR, self).__init__()
+        self.input_conv=nn.Conv2d(in_channel,num_filter,3,padding=1)
+        seq=[]
+        for _ in range(num_layers-2):
+            seq.append(nn.Conv2d(num_filter,num_filter,3,padding=1))
+            seq.append(nn.ReLU(True))
+        self.body=nn.Sequential(*seq)
+        self.output_conv=nn.Conv2d(num_filter,in_channel,3,padding=1)
+
+
+    def forward(self, x):
+        x=self.input_conv(x)
+        x=self.body(x)
+        return self.output_conv(x)
+```
+
 ### ZSSR一些经验
+
+- 文中所用到的往超分辨率LR图片加噪声的思路也可以借鉴, 文章说可以提高超分辨效果
+- 文中还采用了随机高斯核来模拟未知下采样效果, 且在这种情况下验证得到ZSSR能够获得SOTA结果, 这方面是无监督超分辨方法的优势
