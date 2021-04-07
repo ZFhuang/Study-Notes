@@ -928,7 +928,7 @@ RCAN在超分辨率任务中引入了注意力机制, 其关注的问题是网�
 
 ![picture 3](Media/6fb20a6d4b015a720c730e09a6fde9958eaeb17afbe1d445ada841de9119d2ae.png)  
 
-RCAN所使用的注意力结构CA就是上图的形式, 将一个个特征转为权值进行加权, 而网络本身是由残差结构组成的, 最后的真正的超分辨部分则是由传统的ESPCN进行的.
+RCAN所使用的注意力结构CA就是上图的形式, 将一个个特征转为权值进行加权, 而网络本身是由残差结构组成的, 最后的真正的上采样部分则是简单亚像素卷积完成.
 
 ### RCAN简单实现
 
@@ -998,19 +998,17 @@ class RCAB(nn.Module):
         return x
 
 
-class ESPCN(nn.Module):
+class Upsample(nn.Module):
     def __init__(self, in_channel, scale=2):
-        super(ESPCN, self).__init__()
-        self.add_module('n1 conv', nn.Conv2d(in_channel, 64, 5, padding=2))
-        self.add_module('tanh 1', nn.Tanh())
-        self.add_module('n2 conv', nn.Conv2d(64, 32, 3, padding=1))
-        self.add_module('tanh 2', nn.Tanh())
-        self.add_module('n3 conv', nn.Conv2d(32, in_channel*scale*scale, 3, padding=1))
-        self.add_module('pixel shuf', nn.PixelShuffle(scale))
+        super(Upsample, self).__init__()
+        self.conv= nn.Conv2d(in_channel, in_channel*scale*scale, 3, padding=1)
+        self.up= nn.PixelShuffle(scale)
+        self.relu=nn.ReLU(True)
 
     def forward(self, x):
-        for module in self._modules.values():
-            x = module(x)
+        x=self.conv(x)
+        x=self.up(x)
+        x=self.relu(x)
         return x
 ```
 
