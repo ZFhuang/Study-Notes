@@ -22,6 +22,7 @@
 - [Chapter2 Miscellaneous Math 各种数学工具](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter2%20Miscellaneous%20Math%20各种数学工具/README.md)
 - [Chapter12 Data Structures for Graphics 图形学数据结构](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 - [Chapter13 More Ray Tracing 光线追踪扩展](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
+- [Chapter14 Sampling 采样](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/Chapter14%20Sampling%20采样/README.md)
 
 [中国科学技术大学-数字几何处理 笔记](./Content/中国科学技术大学-数字几何处理%20笔记/README.md)
 
@@ -32,6 +33,8 @@
 ## 科研学术相关
 
 [A Local/Global Approach to Mesh Parameterization 笔记](./Content/论文笔记/A%20Local%20Global%20Approach%20to%20Mesh%20Parameterization/README.md)
+
+[超分辨率实践](./Content/机器学习/超分辨率实践/README.md)
 
 ## 数学相关
 
