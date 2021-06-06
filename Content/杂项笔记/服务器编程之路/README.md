@@ -1,16 +1,16 @@
 # 服务器编程之路
 
 - [服务器编程之路](#服务器编程之路)
-  - [最初的连接](#最初的连接)
-  - [用VSCode连接服务器](#用vscode连接服务器)
-  - [设置ssh密钥](#设置ssh密钥)
-  - [在VSCode上离线安装插件](#在vscode上离线安装插件)
-  - [在服务器上进行调试](#在服务器上进行调试)
-  - [用Git与服务器协作](#用git与服务器协作)
-  - [VSCode实用操作](#vscode实用操作)
+  - [VSCode与服务器](#vscode与服务器)
+    - [最初的连接](#最初的连接)
+    - [设置ssh密钥](#设置ssh密钥)
+    - [在VSCode上离线安装插件](#在vscode上离线安装插件)
+    - [在服务器上进行调试](#在服务器上进行调试)
+    - [用Git与服务器协作](#用git与服务器协作)
+    - [VSCode实用操作](#vscode实用操作)
     - [Debugger配置](#debugger配置)
     - [命令行调用Debugger](#命令行调用debugger)
-  - [查看设备使用情况](#查看设备使用情况)
+  - [设备使用情况](#设备使用情况)
     - [CPU使用情况](#cpu使用情况)
     - [Memory使用情况](#memory使用情况)
     - [GPU使用情况](#gpu使用情况)
@@ -19,22 +19,27 @@
     - [获取文件数量](#获取文件数量)
     - [捕获进程输出](#捕获进程输出)
     - [杀死进程](#杀死进程)
+  - [环境配置](#环境配置)
+    - [conda虚拟环境](#conda虚拟环境)
+    - [切换cuda版本](#切换cuda版本)
+  - [Tensorflow](#tensorflow)
+    - [版本问题](#版本问题)
 
 记录在无root权限且无法连接外网的服务器上使用ssh连接进行linux编程和深度学习踩过的坑
 
-## 最初的连接
+## VSCode与服务器
 
-## 用VSCode连接服务器
+### 最初的连接
 
-## 设置ssh密钥
+### 设置ssh密钥
 
-## 在VSCode上离线安装插件
+### 在VSCode上离线安装插件
 
-## 在服务器上进行调试
+### 在服务器上进行调试
 
-## 用Git与服务器协作
+### 用Git与服务器协作
 
-## VSCode实用操作
+### VSCode实用操作
 
 ### Debugger配置
 
@@ -71,7 +76,7 @@ python -m debugpy
     [<arg>]...
 ```
 
-## 查看设备使用情况
+## 设备使用情况
 
 ### CPU使用情况
 
@@ -121,7 +126,7 @@ $ ls -lR | grep "^d" | wc -l  # 查看某目录下文件夹(目录)的个数(包
 ### 捕获进程输出
 
 ```sh
-strace -p {pid} -ewrite | grep 'write(1,' # 当进程在后台运行时使用, 捕获编号为{pid}的进程的控制台输出
+$ strace -p {pid} -ewrite | grep 'write(1,' # 当进程在后台运行时使用, 捕获编号为{pid}的进程的控制台输出
 ```
 
 ### 杀死进程
@@ -129,4 +134,28 @@ strace -p {pid} -ewrite | grep 'write(1,' # 当进程在后台运行时使用, �
 ```sh
 $ kill {pid}  # 杀死编号为{pid}的进程
 $ killall -u {name} # 杀死名为{name}的用户的所有进程  
+```
+
+## 环境配置
+
+### conda虚拟环境
+
+### 切换cuda版本
+
+> https://zhuanlan.zhihu.com/p/59123983
+
+```sh
+$ cat /usr/local/cuda/version.txt # 查看当前cuda版本
+$ cd /usr/local # 查看已安装的cuda
+$ vim ~/.bashrc # 在里面修改当前环境变量的路径即可
+```
+
+## Tensorflow
+
+### 版本问题
+
+```py
+# 遇到2.X版本想要运行1.X版本代码时, 将导入tf的地方替换为下面的代码
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 ```
