@@ -12,6 +12,7 @@
 - [Chapter2 Miscellaneous Math 各种数学工具](./Chapter2%20Miscellaneous%20Math%20各种数学工具/README.md)
 - [Chapter3 Raster Image 光栅图像](./Chapter3%20Raster%20Image%20光栅图像/README.md)
 - [Chapter4 Ray Tracing 光线追踪](./Chapter4%20Ray%20Tracing%20光线追踪/README.md)
+- [Chapter5 Linear Algebra 线性代数](./Chapter5%20Linear%20Algebra%20线性代数/README.md)
 - [Chapter6 Transformation Matrices 变换矩阵](./Chapter6%20Transformation%20Matrices%20变换矩阵/README.md)
 - [Chapter12 Data Structures for Graphics 图形学数据结构](./Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 - [Chapter13 More Ray Tracing 光线追踪扩展](./Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
