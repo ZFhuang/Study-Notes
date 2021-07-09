@@ -15,6 +15,7 @@
 - [Chapter5 Linear Algebra 线性代数](./Chapter5%20Linear%20Algebra%20线性代数/README.md)
 - [Chapter6 Transformation Matrices 变换矩阵](./Chapter6%20Transformation%20Matrices%20变换矩阵/README.md)
 - [Chapter7 Viewing 观察](./Chapter7%20Viewing%20观察/README.md)
+- [Chapter8 The Graphics Pipeline 图形管线](./Chapter8%20The%20Graphics%20Pipeline%20图形管线/README.md)
 - [Chapter12 Data Structures for Graphics 图形学数据结构](./Chapter12%20Data%20Structures%20for%20Graphics%20图形学中的数据结构/README.md)
 - [Chapter13 More Ray Tracing 光线追踪扩展](./Chapter13%20More%20Ray%20Tracing%20光线追踪扩展/README.md)
 - [Chapter14 Sampling 采样](./Chapter14%20Sampling%20采样/README.md)
