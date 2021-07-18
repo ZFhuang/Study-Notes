@@ -16,6 +16,7 @@
   - [17.13 Shading in the Fragment Processor 用片元处理器着色](#1713-shading-in-the-fragment-processor-用片元处理器着色)
   - [17.14 Meshes and Instancing 网格和实例化](#1714-meshes-and-instancing-网格和实例化)
   - [17.15 Texture Objects 材质对象](#1715-texture-objects-材质对象)
+  - [17.16 Object-Oriented Design for Graphics Hardware Programming 图形硬件编程中的面向对象设计](#1716-object-oriented-design-for-graphics-hardware-programming-图形硬件编程中的面向对象设计)
 
 这一章介绍了计算机与图形硬件和实际编程相关的内容, 其中主要利用OpenGL简单介绍了实际的图形编程部分, 但是如果想要真正开始OpenGL编程, 查阅其它资料是必不可少的. 注意这一章最新的英文版和中文版由于时代不同所以内容差别非常大, 建议还是阅读英文版本.
 
@@ -90,7 +91,7 @@ while (!glfwWindowShouldClose(window)) {
 
   // 判断是否退出循环
   if (glfwGetKey( window, GLFW_KEY_ESCAPE ) == GLFW_PRESS)
-      glfwSetWindowShouldClose(window, 1);
+    glfwSetWindowShouldClose(window, 1);
 }
 ```
 
@@ -259,7 +260,7 @@ glUniformMatrix4fv(pMatID, 1, GL_FALSE, glm::value_ptr(projMatrix));
 // 假设现在三角形数据数组增加了各个顶点的颜色信息, 从下面可以看出,分别为连续的6个数据:
 // 每个顶点都是x, y, z, r, g, b, 所以所有数据一共是3*6=18个浮点数
 GLfloat vertexData[] = {0.0f, 3.0f, 0.0f, 1.0f, 1.0f, 0.0f, -3.0f,
--3.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, 1.0f};
+  -3.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, 1.0f};
 // 同样是VBO绑定
 glBindBuffer(GL_ARRAY_BUFFER, m_triangleVBO[0]);
 // 设置0号位的属性
@@ -270,7 +271,7 @@ glEnableVertexAttribArray(1);
 // 最后一个参数是数据读取的开始下标, 也就是从顶点缓冲区的(const GLvoid *)12位置开始
 // 这里的(const GLvoid *)12和3 * sizeof(GLfloat)是等价的, 也就是从颜色出现的位置开始
 glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 
-(const GLvoid *)12);
+  (const GLvoid *)12);
 ```
 
 有了这样的新属性输入后, 我们需要修改顶点着色器为下面的样子:
@@ -319,34 +320,188 @@ glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 前面[第十章](./../Chapter10%20Surface%20Shading%20表面着色/README.md)中介绍了Blinn-Phong着色的原理, 而[第八章](./../Chapter8%20The%20Graphics%20Pipeline%20图形管线/README.md)中又介绍了逐片元着色对光照效果的重要意义, 这一小节就通过介绍Blinn-Phong着色的编写来回顾算法和对着色器编程进行总结.
 
+**顶点着色器**
+
+首先是对应Blinn-Phong的顶点着色器, 需要好好利用的就是顶点着色器中每个out变量都可以变为后面片元着色器器中对应的in变量.
+
 ```C++
 #version 330 core
+// 输入时除了顶点的位置外还需要顶点对应的法向信息
 layout(location=0) in vec3 in_Position;
 layout(location=1) in vec3 in_Normal;
+// 传递给片元着色器的相机空间中的顶点法线
 out vec4 normal;
+// 视线和光照方向之间的平分线
 out vec3 half;
+// 光照方向, 也需要是相机空间的
 out vec3 lightdir;
 struct LightData {
   vec3 position;
   vec3 intensity;
 };
+// 传入的光照和各种变换矩阵
 uniform LightData light;
 uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
+// 模型变换矩阵
 uniform mat4 modelMatrix;
+// 法线矩阵通常是模型变换矩阵的逆矩阵
 uniform mat4 normalMatrix;
 
 void main(void) {
+  // 将顶点位置进行模视变换, 先进行对应的模型变换再变换到相机空间
   vec4 pos = viewMatrix * modelMatrix * vec4(in_Position, 1.0);
+  // 计算相机空间中的光源位置
   vec4 lightPos = viewMatrix * vec4(light.position, 1.0);
+  // 计算相机空间中的法线表示
   normal = normalMatrix * vec4(in_Normal, 0.0);
+  // 由于视点(相机)必在原点(0,0)处, 所以原点到顶点的差向量就是视线向量
   vec3 v = normalize( -pos.xyz );
+  // 光源位置与顶点位置的差向量就是对应的光照方向
   lightdir = normalize( lightPos.xyz - pos.xyz );
+  // 视线向量与光线向量的平分线也需要返回
   half = normalize( v + lightdir );
+  // 最后将顶点进行对应的投影后传递下去
   gl_Position = projMatrix * pos;
 }
 ```
 
+**片元着色器**
+
+写好了顶点着色器后, 就要利用下面的式子来在片元着色器中计算出对应片元的颜色.
+
+![picture 19](Media/a3da4022eb016918ba2592f610327abddaf6066933a706bddd52291f9882ec0e.png)  
+
+```C++
+#version 330 core
+in vec4 normal;
+in vec3 half;
+in vec3 lightdir;
+// 要返回的片元的颜色
+layout(location=0) out vec4 fragmentColor;
+struct LightData {
+  vec3 position;
+  vec3 intensity;
+};
+uniform LightData light;
+uniform vec3 Ia;
+uniform vec3 ka, kd, ks;
+// 控制反射聚光强度的指数值
+uniform float phongExp;
+void main(void) {
+  // 三个向量先化为单位向量
+  vec3 n = normalize(normal.xyz);
+  vec3 h = normalize(half);
+  vec3 l = normalize(lightdir);
+  // 直接按照公式进行着色计算即可
+  vec3 intensity = ka * Ia
+    + kd * light.intensity * max( 0.0, dot(n, l) )
+    + ks * light.intensity
+    * pow( max( 0.0, dot(n, h) ), phongExp );
+  fragmentColor = vec4( intensity, 1.0 );
+}
+```
+
+经过这两个着色器的编写, 我们可以得到漂亮的Phong光影效果, 由于着色器程序很多比较复杂且难以调试, 一种好习惯是尽可能多地用辅助的着色器可视化一些中间数据例如模型表面的法线方向, 下面的着色器就是很常用的法线着色器, 其原理很简单, 就是片元级别地读取顶点法线然后转换到RGB空间中显示出来. 下面是代码段和法线着色器的渲染效果:
+
+```C++
+#version 330 core
+in vec4 normal;
+layout(location=0) out vec4 fragmentColor;
+void main(void) {
+  // 核心就是这里将法线从(-1,1)转换到(0,1)然后用RGB进行显示
+  // 尽管这是个很简单的着色器但是由于法线信息在渲染中非常重要因此专门完整写出此着色器
+  vec3 intensity = normalize(normal.xyz) * 0.5 + 0.5;
+  fragmentColor = vec4( intensity, 1.0 );
+}
+```
+
+![picture 20](Media/454c583161e37f00c1cf35521dab87e14efdd805a7c6ef65a5875cfa9a6c79ef.png)  
+
 ## 17.14 Meshes and Instancing 网格和实例化
 
+明白了大概怎么显示三角面数据后就可以尝试读取自己的网格模型了, 常见的网格模型都是.obj格式的, 又很多现成的函数库支持读取这个格式并将其转换为VBO和VAO用于渲染. 直接读取后的模型通常位置和朝向都不是我们想要的样子, 前面[第六章](./../Chapter6%20Transformation%20Matrices%20变换矩阵/README.md)中介绍了很多变换矩阵可以将这些模型转换为我们想要的样子, 但是在实际应用中我们不需要自己去计算这些变换矩阵, GLM库依然提供了方便的函数生成这些矩阵, 我们只要将得到的这些矩阵应用到顶点着色器中即可. 矩阵的应用方法和前面介绍的一样用glUniformMatrix4fv传入.
+
+1. glm::translate 位移矩阵
+2. glm::rotate 旋转矩阵
+3. glm::scale 缩放矩阵
+
+图形编程还有一个技巧是实例化. 实例化技巧不管是在光栅化渲染还是光线追踪渲染中都很常用, 其核心目的是复用内存数据以提高渲染效率, 减少CPU与GPU之间的通信成本并减少内存占用, 只需要传输一次模型数据就可以让GPU渲染多次稍有不同的实例副本, 很适合用于渲染重复物体例如大量的植被模型. 而与光线追踪中通过反向改变光线方向实现的实例化不同, 光栅化中的实例化指示GPU在相同的几何数据上重复进行有些许不同的渲染, 主要使用的函数是glDrawElementsInstanced, 详细的实例化介绍可以参考下面的教程:
+
+> LearnOpenGL - 实例化
+> 
+> https://learnopengl-cn.readthedocs.io/zh/latest/04%20Advanced%20OpenGL/10%20Instancing/
+
 ## 17.15 Texture Objects 材质对象
+
+最后介绍的OpenGL重要组件是材质对象(Texture Object), 其常见的实现方法是在顶点着色器中计算出各个顶点的材质坐标, 然后在片元着色器中对坐标进行对应的插值并从材质图像中查找对应的颜色值进行着色. 首先下面的代码段是将材质载入到缓冲区的过程:
+
+```C++
+// 通过某种方法读取材质数据到动态数组imgData中
+float *imgData = new float[ imgHeight * imgWidth * 3 ];
+...
+// 类似绑定顶点数据的形式绑定材质数据
+GLuint texID;
+glGenTextures(1, &texID);
+glBindTexture(GL_TEXTURE_2D, texID);
+// 这里展示了四种不同的材质参数化方式, 会影响后面材质查找的效果
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+// 将数据从CPU复制到GPU上, 其中第二个参数指示了第十一章提到的mipmap级别
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0,
+  GL_RGB, GL_FLOAT, imgData);
+// 解绑
+glBindTexture(GL_TEXTURE_2D, 0);
+delete [] imgData;
+```
+
+读入材质数据后就需要修改顶点信息, 引入新的浮点属性保存顶点对应的材质坐标, 这个过程和之前加入顶点颜色的部分类似不再赘述. 修改好顶点着色器后再使用着色器前需要在渲染循环中以类似绑定VAO的形式绑定对应的材质句柄, 这个过程的代码段如下:
+
+```C++
+// 选择当前着色器程序
+glUseProgram(shaderID);
+// 设置当前OpenGL所要激活的材质单元(texture unit), 这里只激活了0号单元但可以有多个单元
+glActiveTexture(GL_TEXTURE0);
+// 绑定材质ID到GL_TEXTURE_2D采样器中, 这是最基本的材质采样器
+// 除了GL_TEXTURE_2D外, 还有例如GL_TEXTURE_RECTANGLE的其它采样器可供选择
+glBindTexture(GL_TEXTURE_2D, texID);
+// 由于同一上下文中可以有多个材质单元被激活, 因此需要设置当前绑定的材质单元以供查找
+glUniform1i(texUnitID, 0);
+// 和前面一样, 绑定VAO
+glBindVertexArray(VAO);
+// 绘制三角形
+glDrawArrays(GL_TRIANGLES, 0, 3);
+// 解绑
+glBindVertexArray(0);
+glBindTexture(GL_TEXTURE_2D, 0);
+glUseProgram(0);
+```
+
+复制好所需的材质数据后, 就差修改片元着色器使其具有材质查找的能力了. 以前面的Phong着色器为基础, 下面的代码增加了与材质着色有关的部分:
+
+```C++
+...
+// 从顶点着色器传来的对应顶点的材质坐标
+in vec2 tCoord;
+// 绑定了材质数据的材质单元如上面代码以Uniform传入
+uniform sampler2D textureUnit;
+...
+// texture函数会从材质单元中按照给定的材质坐标进行查找并返回颜色值
+// 由于texture函数返回的颜色值是带有透明度通道的vec4, 因此使用.rgb得到前三个通道
+vec3 kdTexel = texture(textureUnit, tCoord).rgb;
+// 将得到的颜色值附加在Phong着色的漫反射项上就能完成材质着色
+vec3 intensity = ka * Ia + kdTexel * light.intensity
+  * max( 0.0, dot(n, l) ) + ks * light.intensity
+  * pow( max( 0.0, dot(n, h) ), phongExp );
+...
+```
+
+下图是给场景的地面加入重复填充(GL_TEXTURE_WRAP_S和GL_TEXTURE_WRAP_T)的网格材质后的渲染效果:
+
+![picture 21](Media/a02185b0da7e3ea98313593403bf92384424cf47ee746a06634bddfabd1aeb76.png)  
+
+## 17.16 Object-Oriented Design for Graphics Hardware Programming 图形硬件编程中的面向对象设计
+
+OpenGL本身的设计有很强的面向过程特性, 这使得其代码较难理解和掌控. 锻炼我们图形编程能力的最好方法就是自己动手将这些面向过程的方法封装为实用的面向对象方法, 努力实现自己的图形渲染器, 这将会让我们的图形知识更加牢固并大大增强我们的软件开发能力.
