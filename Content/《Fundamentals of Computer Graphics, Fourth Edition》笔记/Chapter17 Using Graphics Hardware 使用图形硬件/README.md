@@ -12,7 +12,10 @@
   - [17.9 Vertex Buffer Objects 顶点缓冲对象](#179-vertex-buffer-objects-顶点缓冲对象)
   - [17.10 Vertex Array Objects 顶点数组对象](#1710-vertex-array-objects-顶点数组对象)
   - [17.11 Transformation Matrices 变换矩阵](#1711-transformation-matrices-变换矩阵)
-  - [17.12 Shading with Per-Vertex Attributes 按照逐顶点属性着色](#1712-shading-with-per-vertex-attributes-按照逐顶点属性着色)
+  - [17.12 Shading with Per-Vertex Attributes 按顶点属性着色](#1712-shading-with-per-vertex-attributes-按顶点属性着色)
+  - [17.13 Shading in the Fragment Processor 用片元处理器着色](#1713-shading-in-the-fragment-processor-用片元处理器着色)
+  - [17.14 Meshes and Instancing 网格和实例化](#1714-meshes-and-instancing-网格和实例化)
+  - [17.15 Texture Objects 材质对象](#1715-texture-objects-材质对象)
 
 这一章介绍了计算机与图形硬件和实际编程相关的内容, 其中主要利用OpenGL简单介绍了实际的图形编程部分, 但是如果想要真正开始OpenGL编程, 查阅其它资料是必不可少的. 注意这一章最新的英文版和中文版由于时代不同所以内容差别非常大, 建议还是阅读英文版本.
 
@@ -156,7 +159,8 @@ void main(void) {
 为了一次性将大量的顶点数据传递到GPU上进行处理, 顶点数据是以缓冲区的形式保存在GPU上的, 我们用顶点缓冲对象(Vertex Buffer Objects; VBO)来管理这些数据, VBO保存了顶点的颜色, 法线, 材质坐标等等信息. 以一个三角形为例, 将三角形对应的顶点传入GPU的步骤大致是下面代码段的样子. 这段代码看起来了很迷惑, 其目的是权衡易用性和执行效率, 通过对相同缓冲区不同位置的绑定, 我们可以利用VBO句柄来操作庞大的缓冲区的一小段区域, 但是GPU处理的时侯又无须考虑顶点之间的差别只要一起解析整个缓冲区即可.
 
 ```C++
-// 假设三角形顶点数据都以数组形式保存在vertices中
+// 假设三角形顶点数据以数组形式保存在vertices中
+GLfloat vertices[] = {-3.0f, -3.0f, 0.0f, 3.0f, -3.0f, 0.0f, 0.0f, 3.0f, 0.0f}
 // 创建保存句柄的ID标识triangleVBO
 GLuint triangleVBO[1];
 // 从GPU上得到一个缓冲区的句柄(仅仅是一个名称, 可以理解为指针), 保存在triangleVBO中
@@ -165,7 +169,7 @@ glGenBuffers(1, triangleVBO);
 // 此后对GL_ARRAY_BUFFER的操作都会对名为triangleVBO的缓冲对象进行
 glBindBuffer(GL_ARRAY_BUFFER, triangleVBO[0]);
 // 将vertices的数据从CPU复制到GPU上, 每个顶点的数据量是9 * sizeof(GLfloat)
-// GL_STATIC_DRAW表示顶点在执行中不会改变
+// GL_STATIC_DRAW提示GPU这些顶点在程序中几乎不会改变. 所以GPU会进行最大程度的优化
 glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 // 令GL_ARRAY_BUFFER与VBO解绑(0默认就是解绑), 此后可以绑定新的VBO名称
 glBindBuffer(GL_ARRAY_BUFFER, 0)
@@ -191,14 +195,14 @@ glBindBuffer(GL_ARRAY_BUFFER, triangleVBO[0]);
 // 这个函数控制了如何将当前绑定的缓冲区中的数据与VAO的顶点属性映射起来
 // 第一个参数指明现在设置的是location为0的属性, 第二个参数表示每个属性由三个元素组成
 // 这三个元素是GL_FLOAT浮点数, 并且数据不进行归一化(GL_FALSE)
-// 第四个参数值除一个属性元素的尺寸是缓冲区中3 * sizeof(GLfloat)也就是三个浮点数的空间
-// 最后一个参数指明此属性的数据从当前绑定的缓冲区的下标0开始, 至此就完成了VBO到VAO的映射
+// 第五个参数值是数据读取的步长, 这里步长和要读取的变量大小是一样的3个浮点数
+// 最后一个参数指明此数据从绑定的缓冲区的下标0开始读取, 至此就完成了VBO到VAO的映射
 glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
 // 解绑当前OpenGL的顶点数组对象, 此后可以绑定新的VAO进行操作
 glBindVertexArray(0);
 ```
 
-以上的顶点缓冲和顶点数组操作都要在渲染开始前进行, 真正进入渲染后我们就只需要在每次渲染循环中间调用下面的小代码段就可以渲染出想要的顶点数据了:
+以上的顶点缓冲和顶点数组操作都要在渲染开始前进行, 真正进入渲染后我们就只需要在每次渲染循环中间调用下面的小代码段就可以渲染出想要的顶点数据了. 这段代码和着色器程序的调用一起插入17.6的渲染循环中间就能够显示出一个绿色单色的三角形, 具体的完整代码较长可以看书:
 
 ```C++
 // 给当前OpenGL绑定属性为VAO的顶点数组
@@ -209,6 +213,140 @@ glDrawArrays(GL_TRIANGLES, 0, 3);
 glBindVertexArray(0);
 ```
 
+![picture 1](Media/0e917e512b9037d04833b25f4a7b8e13efe361263dcc121be8c9b370836d11b1.png)  
+
 ## 17.11 Transformation Matrices 变换矩阵
 
-## 17.12 Shading with Per-Vertex Attributes 按照逐顶点属性着色
+了解了如何读入顶点数据并完成对数据对象的绑定后, 又回到了渲染的一些基本问题上, 首先是对[第六章](./../Chapter6%20Transformation%20Matrices%20变换矩阵/README.md)各种变换矩阵的设置. 最开始的时侯说到OpenGL通常使用的是第三方矩阵库GLM来进行矩阵操作, GLM除了提供基本数学对象外, 以变换矩阵为例, GLM提供的常用三个变换矩阵, 大大简化了编写变换矩阵的过程:
+
+1. glm::ortho 按照传入的参数创建一个正交投影矩阵
+2. glm::perspective 创建透视投影矩阵
+3. glm::lookAt 创建一个能改变摄像机方向和位置而指向某个目标的仿射变换矩阵
+
+利用这些提供好的变换矩阵, 我们可以很方便地完成渲染管线中几何变换的过程. 但是回忆一下, 类似正交投影变换这样的几何变换通常都是统一发生在所有顶点上的, 我们没有必要对所有顶点对象都传入一个相同的变换矩阵到顶点着色器中, 因此OpenGL设置了一类专门的类型用来控制这种通用的数据: 统一(Uniform). 声明为Uniform的变量在程序进行中都是静态的, 对于投影变换, 光源等等不常变动的数据非常有用, 大大提高了内存的利用率和执行效率. 下面是运用了Uniform变量的顶点着色器样例:
+
+```C++
+#version 330 core
+layout(location=0) in vec3 in_Position;
+// uniform数据, 这里从外部传入了投影矩阵, projMatrix是Uniform数据的名称, 在外部指定
+uniform mat4 projMatrix;
+void main(void) {
+  // 按照矩阵乘法来对顶点进行矩阵变换
+  gl_Position = projMatrix * vec4(in_Position, 1.0);
+}
+```
+
+设置Uniform数据的步骤并不困难, 只需要按照下面的几行代码在着色器链接后获得对应名称的变量句柄然后传入数据即可:
+
+```C++
+// 利用glm生成一个正交投影矩阵
+glm::mat4 projMatrix = glm::ortho(-5.0f, 5.0f, -5.0, 5.0, -10.0f, 10.0f);
+// 当前的着色器程序绑定名称为projMatrix的Uniform变量句柄
+GLint pMatID = glGetUniformLocation(shaderProgram, "projMatrix");
+// 切换当前OpenGL到需要这个变量的着色器状态
+// 着色器由各自的shaderID标识, 多个着色器链接得到着色器程序shaderProgram
+glUseProgram(shaderID);
+// 将projMatrix的指针和对应句柄pMatID绑定, 此后这个着色器就能读取到外部的矩阵
+// 函数glUniformMatrix4fv表示目标是Uniform变量, 是矩阵, 四个float元素, 传入的是指针v
+glUniformMatrix4fv(pMatID, 1, GL_FALSE, glm::value_ptr(projMatrix));
+```
+
+## 17.12 Shading with Per-Vertex Attributes 按顶点属性着色
+
+至此我们大致搞明白了如何应用着色器来操控渲染管线的处理过程, 下面就是一个简单的着色器样例介绍了如何进行按照顶点属性着色前面那个简单的单色三角形. 
+
+```C++
+// 假设现在三角形数据数组增加了各个顶点的颜色信息, 从下面可以看出,分别为连续的6个数据:
+// 每个顶点都是x, y, z, r, g, b, 所以所有数据一共是3*6=18个浮点数
+GLfloat vertexData[] = {0.0f, 3.0f, 0.0f, 1.0f, 1.0f, 0.0f, -3.0f,
+-3.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, 1.0f};
+// 同样是VBO绑定
+glBindBuffer(GL_ARRAY_BUFFER, m_triangleVBO[0]);
+// 设置0号位的属性
+glEnableVertexAttribArray(0);
+// 仍然是读取3个GL_FOLAT数据, 但是步长变为了6 * sizeof(GLfloat)
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
+glEnableVertexAttribArray(1);
+// 最后一个参数是数据读取的开始下标, 也就是从顶点缓冲区的(const GLvoid *)12位置开始
+// 这里的(const GLvoid *)12和3 * sizeof(GLfloat)是等价的, 也就是从颜色出现的位置开始
+glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 
+(const GLvoid *)12);
+```
+
+有了这样的新属性输入后, 我们需要修改顶点着色器为下面的样子:
+
+```C++
+#version 330 core
+layout(location=0) in vec3 in_Position;
+// 新增的颜色属性
+layout(location=1) in vec3 in_Color;
+// 这里设置了一个属于顶点着色器的out变量, 用来返回顶点的颜色
+// 当名称匹配时, 顶点着色器的out变量会传递到后面片元着色器对应的in变量中
+out vec3 vColor;
+uniform mat4 projMatrix;
+void main(void) {
+  // 赋值颜色给out从而传递给片元着色器
+  vColor = in_Color;
+  gl_Position = projMatrix * vec4(in_Position, 1.0);
+}
+```
+
+对应的片元着色器只要把硬编码的颜色值转为传入的颜色值即可, 在此不表. 经过这样的修改后, 只要OpenGL保持默认的三角形图元渲染方式, 顶点颜色就会自动进行重心插值从而得到过渡平滑的带颜色的三角形如下图:
+
+![picture 2](Media/3ef521e805ed595b65a2725abc42f9c45b6cac5d45092fd00ce04d9b8f78d3c5.png)  
+
+**顶点数据的结构体**
+
+仅仅给顶点增加了一个属性, 就需要仔细考虑数据在缓冲中的错位排放等等问题, 这个过程显然有些繁琐且脆弱, 可想而知若顶点属性变得复杂这个过程将会多么麻烦. 联想到这里我们传入数据本质上只是将一整块连续的数据复制进GPU对应的缓冲区而已, 因此我们在外部可以大胆使用其它的数据结构来控制这些数据. 最直观的想法就是使用struct和vector这两个连续储存的数据结构来代替我们自己控制的数组vertexData[]. 对于VAO的设置仍然是上面的处理方法, 但是VBO的绑定就可以改为下面的形式, 这种操作大大简化了人工操作数组的困扰且不会带来什么效率损失:
+
+```C++
+// 用结构体代替顶点属性数组
+struct vertexData
+{
+  glm::vec3 pos;
+  glm::vec3 color;
+};
+// 用标准库的vector(动态数组)来组织多个顶点
+std::vector<vertexData> modelData;
+// 用自带的函数来轻松计算出数组所占的真实空间
+int numBytes = modelData.size() * sizeof(vertexData);
+// 用vector.data()来得到指向真正数据的指针, 如何就可以和前面一样传入GPU了
+glBufferData(GL_ARRAY_BUFFER, numBytes, modelData.data(), GL_STATIC_DRAW);
+glBindBuffer(GL_ARRAY_BUFFER, 0);
+```
+
+## 17.13 Shading in the Fragment Processor 用片元处理器着色
+
+前面[第十章](~)中介绍了Blinn-Phong着色的原理, 而[第八章](./../Chapter8%20The%20Graphics%20Pipeline%20图形管线/README.md)中又介绍了逐片元着色对光照效果的重要意义, 这一小节就通过介绍Blinn-Phong着色的编写一边回顾算法一边总结顶点着色器与片元着色器的配合.
+
+```C++
+#version 330 core
+layout(location=0) in vec3 in_Position;
+layout(location=1) in vec3 in_Normal;
+out vec4 normal;
+out vec3 half;
+out vec3 lightdir;
+struct LightData {
+  vec3 position;
+  vec3 intensity;
+};
+uniform LightData light;
+uniform mat4 projMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 normalMatrix;
+
+void main(void) {
+  vec4 pos = viewMatrix * modelMatrix * vec4(in_Position, 1.0);
+  vec4 lightPos = viewMatrix * vec4(light.position, 1.0);
+  normal = normalMatrix * vec4(in_Normal, 0.0);
+  vec3 v = normalize( -pos.xyz );
+  lightdir = normalize( lightPos.xyz - pos.xyz );
+  half = normalize( v + lightdir );
+  gl_Position = projMatrix * pos;
+}
+```
+
+## 17.14 Meshes and Instancing 网格和实例化
+
+## 17.15 Texture Objects 材质对象
