@@ -317,7 +317,7 @@ glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 ## 17.13 Shading in the Fragment Processor 用片元处理器着色
 
-前面[第十章](~)中介绍了Blinn-Phong着色的原理, 而[第八章](./../Chapter8%20The%20Graphics%20Pipeline%20图形管线/README.md)中又介绍了逐片元着色对光照效果的重要意义, 这一小节就通过介绍Blinn-Phong着色的编写一边回顾算法一边总结顶点着色器与片元着色器的配合.
+前面[第十章](./../Chapter10%20Surface%20Shading%20表面着色/README.md)中介绍了Blinn-Phong着色的原理, 而[第八章](./../Chapter8%20The%20Graphics%20Pipeline%20图形管线/README.md)中又介绍了逐片元着色对光照效果的重要意义, 这一小节就通过介绍Blinn-Phong着色的编写来回顾算法和对着色器编程进行总结.
 
 ```C++
 #version 330 core
