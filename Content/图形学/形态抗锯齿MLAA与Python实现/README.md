@@ -1,6 +1,6 @@
-# 形态抗锯齿MLAA与Python实现
+# 形态抗锯齿MLAA详解与Python实现
 
-- [形态抗锯齿MLAA与Python实现](#形态抗锯齿mlaa与python实现)
+- [形态抗锯齿MLAA详解与Python实现](#形态抗锯齿mlaa详解与python实现)
   - [总览](#总览)
     - [参考资料](#参考资料)
     - [流程概览](#流程概览)
@@ -10,7 +10,7 @@
     - [权重计算](#权重计算)
     - [颜色混合](#颜色混合)
   - [结果](#结果)
-  - [总结](#总结)
+  - [展望](#展望)
 
 ## 总览
 
@@ -97,9 +97,65 @@ def _find_edges(img, th=0.1):
 
 ### 模式分类
 
+得到图片边缘之后, MLAA论文中将边缘视作走样并分为三个模式: L型, Z型, U型. 下面是Reshetov对这三种模式给出的示意图:
 
+![picture 6](Media/f5a5369c537fdc658c71f4f25e64a237e01b87ebe6d23a13f5fbef8fd0ee98a3.png)  
+
+但想要用程序直接寻找着三种模式是比较困难的, 所以这里我们对模式搜索算法进行优化, 将所有模式都转为长边与短边的组合. 注意到这些走样模式都是由长度为1的一到两条短边与长度未知的一条长边组成, 所有的模式都需要长边的存在, 因此我们将长边的出现视作模式搜索的起点, 当模式遇到短边或达到尽头时模式结束, 所以将短边或空像素视作模式搜索的终点, 从而将所有模式转换为两个子模式的组合. 
+
+然后首先将模式搜索分为基于X和基于Y两种搜索顺序, 以X优先搜索为例, 当遍历发现G通道的值为1时, 也就是当前像素上方有横边存在, 认为遇见了走样, 判断上面相邻像素和自身像素的R通道是否有1存在. 若上方相邻像素R通道为1, 此走样的前半段定为B型, 表示长边在短边下方, 若当前像素R通道为1, 此走样前半段定为T型, 表示长边在短边上方, 若当前和上方像素R通道都为1, 定为H型, 表示长边的上下都有短边, 若R通道都为0, 此走样前半段定为L型, 表示形如原论文的L走样, 即一侧缺少短边. 
+
+完成了前半段的搜索后就开始后半段的搜索, 关注点在于计算出走样的长度和后半段的走样模式. 当遍历途中的像素或上方像素的R通道为1时, 表示这段走样来到了终点, 记录下走样所经过的像素数量就是走样的长度, 然后用和起点处相同的判断模式判断出终点处的走样属于TBHL四个模式中的某一个, 记录下来.
+
+熟悉了这个流程后再看下面的两种典型走样情况, 第一个走样是原论文的Z型走样, 经过上面的拆解变为了TB型走样, 第二个走样是原论文的L型走样, 经过拆解变为了LB型走样. 图的下面是对应搜索的代码, 基于X优先遍历搜索完走样模式后, 再以类似的方法按Y搜索一次走样模式, 保存在一个列表里即可.
+
+![picture 8](Media/cc5e4246871a2a28f00edbff156299fe73fe4eacf3d6f7f5b58da484a609ddf1.png)  
+
+```python
+def _find_aliasings_x(img_edges):
+    list_aliasings = []
+    mask = np.zeros((img_edges.shape[0], img_edges.shape[1], 1))
+    for y in range(1, img_edges.shape[0]):
+        for x in range(0, img_edges.shape[1]):
+            if mask[y, x] == 0:
+                if img_edges[y, x, 1] == 1:
+                    if img_edges[y, x, 0] == 1 and img_edges[y-1, x, 0] == 1:
+                        start_pattern = 'H'
+                    elif img_edges[y, x, 0] == 1:
+                        start_pattern = 'T'
+                    elif img_edges[y-1, x, 0] == 1:
+                        start_pattern = 'B'
+                    else:
+                        start_pattern = 'L'
+                    dis, end_pattern, mask = _cal_aliasing_info_x(
+                            img_edges, x+1, y, mask)
+                    list_aliasings.append(
+                        [y, x, dis, start_pattern+end_pattern])
+    return list_aliasings
+
+def _cal_aliasing_info_x(img_edges, start_x, start_y, mask):
+    dis = 1
+    for x in range(start_x, img_edges.shape[1]):
+        if img_edges[start_y, x, 0] == 1 and img_edges[start_y-1, x, 0] == 1:
+            pattern = 'H'
+            return dis, pattern, mask
+        if img_edges[start_y, x, 0] == 1:
+            pattern = 'T'
+            return dis, pattern, mask
+        if img_edges[start_y-1, x, 0] == 1:
+            pattern = 'B'
+            return dis, pattern, mask
+        if img_edges[start_y, x, 1] == 0:
+            break
+        mask[start_y, x] = 1
+        dis+=1
+    pattern = 'L'
+    return dis, pattern, mask
+```
 
 ### 权重计算
+
+
 
 ![picture 2](Media/9161948acff986ed35de5f83f2bde9789b315dfd4cab197b5d1371d667aef5cc.png)  
 
@@ -110,4 +166,4 @@ def _find_edges(img, th=0.1):
 
 ## 结果
 
-## 总结
+## 展望
