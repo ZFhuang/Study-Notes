@@ -21,6 +21,10 @@
 
 [中国科学技术大学-数字几何处理 笔记](./Content/中国科学技术大学-数字几何处理%20笔记/README.md)
 
+[样条曲线曲面 笔记](./Content/专项笔记/样条曲线曲面/README.md)
+
+[形态抗锯齿MLAA与Python实现](./Content/图形学/形态抗锯齿MLAA与Python实现/README.md)
+
 ## 软件工程相关
 
 [《游戏引擎架构》笔记](./Content/《游戏引擎架构》笔记/README.md)
@@ -32,9 +36,5 @@
 [A Local/Global Approach to Mesh Parameterization 笔记](./Content/论文笔记/A%20Local%20Global%20Approach%20to%20Mesh%20Parameterization/README.md)
 
 [超分辨率实践](./Content/机器学习/超分辨率实践/README.md)
-
-## 数学相关
-
-[样条曲线曲面 笔记](./Content/专项笔记/样条曲线曲面/README.md)
 
 ## 杂文
