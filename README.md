@@ -35,6 +35,10 @@
 
 [A Local/Global Approach to Mesh Parameterization 笔记](./Content/论文笔记/A%20Local%20Global%20Approach%20to%20Mesh%20Parameterization/README.md)
 
+[Phong Deformation A better C0 interpolant for embedded deformation 笔记](./Content/论文笔记/Phong%20Deformation%20A%20better%20C0%20interpolant%20for%20embedded%20deformation/README.md)
+
+[Surface-from-Gradients An Approach Based on Discrete Geometry Processing 笔记](./Content/论文笔记/Surface-from-Gradients%20An%20Approach%20Based%20on%20Discrete%20Geometry%20Processing/README.md)
+
 [超分辨率实践](./Content/机器学习/超分辨率实践/README.md)
 
 ## 杂文

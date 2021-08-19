@@ -1,6 +1,8 @@
-# Surface-from-Gradients An Approach Based on Discrete Geometry Processing
+# Surface-from-Gradients An Approach Based on Discrete Geometry Processing 笔记
 
-- [Surface-from-Gradients An Approach Based on Discrete Geometry Processing](#surface-from-gradients-an-approach-based-on-discrete-geometry-processing)
+![picture 1](Media/1a145fd8df97215f7161a313f660c88ca0f23dfb8f6fcff3dd0bf8bfae17e329.png)  
+
+- [Surface-from-Gradients An Approach Based on Discrete Geometry Processing 笔记](#surface-from-gradients-an-approach-based-on-discrete-geometry-processing-笔记)
   - [总览](#总览)
   - [离散几何处理SfG问题](#离散几何处理sfg问题)
   - [局部变形](#局部变形)
@@ -8,8 +10,6 @@
   - [数学求解和边界](#数学求解和边界)
   - [结果与总结](#结果与总结)
   - [相关工作](#相关工作)
-
-![picture 1](Media/1a145fd8df97215f7161a313f660c88ca0f23dfb8f6fcff3dd0bf8bfae17e329.png)  
 
 ## 总览
 
