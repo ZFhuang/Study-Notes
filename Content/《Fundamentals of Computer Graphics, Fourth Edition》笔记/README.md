@@ -22,3 +22,4 @@
 - [Chapter15 Curves 曲线](./Chapter15%20Curves%20曲线/README.md)
 - [Chapter16 Computer Animation 计算机动画](./Chapter16%20Computer%20Animation%20计算机动画/README.md)
 - [Chapter17 Using Graphics Hardware 使用图形硬件](./Chapter17%20Using%20Graphics%20Hardware%20使用图形硬件/README.md)
+- [Chapter18 Light 光](./Chapter18%20Light%20光/README.md)
