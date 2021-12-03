@@ -1,6 +1,6 @@
-# Chapter18 Light 光照
+# Chapter18 Light 光
 
-- [Chapter18 Light 光照](#chapter18-light-光照)
+- [Chapter18 Light 光](#chapter18-light-光)
   - [18.1 Radiometry 辐射学](#181-radiometry-辐射学)
     - [18.1 Photon 光子](#181-photon-光子)
     - [18.1.2 Spectral Energy 光谱能量](#1812-spectral-energy-光谱能量)
