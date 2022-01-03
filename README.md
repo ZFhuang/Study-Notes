@@ -19,19 +19,21 @@
 
 [《Fundamentals of Computer Graphics, Fourth Edition》笔记](./Content/《Fundamentals%20of%20Computer%20Graphics,%20Fourth%20Edition》笔记/README.md)
 
-[中国科学技术大学-数字几何处理 笔记](./Content/中国科学技术大学-数字几何处理%20笔记/README.md)
-
 [样条曲线曲面 笔记](./Content/专项笔记/样条曲线曲面/README.md)
 
 [形态抗锯齿MLAA与Python实现](./Content/图形学/形态抗锯齿MLAA与Python实现/README.md)
 
 ## 软件工程相关
 
-[《游戏引擎架构》笔记](./Content/《游戏引擎架构》笔记/README.md)
-
 [《重构》笔记](./Content/《重构》笔记/README.md)
 
-## 游戏设计相关
+[侯捷C++面向对象高级编程 上 笔记](./Content/C++相关/C++面向对象高级编程/上/README.md)
+
+[侯捷C++面向对象高级编程 下 笔记](./Content/C++相关/C++面向对象高级编程/下/README.md)
+
+[侯捷C++标准库:体系结构与内核分析 笔记](Content/C++相关/C++标准库-体系结构与内核分析%20笔记/README.md)
+
+[《Effective C++》笔记](./Content/《Effective%20C++》笔记/README.md)
 
 ## 科研学术相关
 
@@ -42,5 +44,3 @@
 [Surface-from-Gradients An Approach Based on Discrete Geometry Processing 笔记](./Content/论文笔记/Surface-from-Gradients%20An%20Approach%20Based%20on%20Discrete%20Geometry%20Processing/README.md)
 
 [超分辨率实践](./Content/机器学习/超分辨率实践/README.md)
-
-## 杂文
