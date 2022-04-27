@@ -23,6 +23,10 @@
 
 [形态抗锯齿MLAA与Python实现](./Content/图形学/形态抗锯齿MLAA与Python实现/README.md)
 
+## 游戏开发相关
+
+[《游戏编程算法与技巧》笔记](./Content/《游戏编程算法与技巧》笔记/README.md)
+
 ## 软件工程相关
 
 [《重构》笔记](./Content/《重构》笔记/README.md)
