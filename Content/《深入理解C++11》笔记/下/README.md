@@ -161,7 +161,7 @@ https://www.zhihu.com/question/24301047/answer/1193956492
    3. `memory_order_acquire`只能用在load操作中, 其使得该操作后的内存读写不能被重排到这个操作前, 相当于"读者"
    4. `memory_order_release`类似, 只能用在store中, 其禁止这个操作前面的内存读写重排到这个操作之后, 相当于"写者"
    5. `memory_order_consume`也只能用于load操作中, 其也禁止后面的重排, 但是这个限制只影响自己这个原子变量, 不会影响其他操作的重排. 这个模型比较少用, 很多编译器将其实现得和acquire相同
-   6. , `memory_order_acq_rel`是获取-释放顺序, 是acquire和release的结合体, 起到一个内存栅栏的作用
+   6. `memory_order_acq_rel`是获取-释放顺序, 是acquire和release的结合体, 起到一个内存栅栏的作用
 
 ## 线程局部存储TLS
 
